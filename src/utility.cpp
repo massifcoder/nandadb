@@ -16,12 +16,30 @@ void printInOrder(){
 }
 
 // Taking data as vector in pre-order traversal.
-void preOderTraversal(Node* node, vector<SSTNode>&result){
-    if(node != nullptr){
-        result.push_back(SSTNode(node->id,node->name,node->age,node->purchased_value,node->contact_number));
+void create_index_tree(vector<SSTNode>&result){
+    
+    if(avl.root == nullptr){
+        return;
+    }
+    queue<Node*> q;
+    q.push(avl.root);
+    while(!q.empty()){
+
+        Node* node = q.front();
+        q.pop();
+        result.push_back(SSTNode(node->id, node->name, node->age, node->purchased_value, node->contact_number));
+        
+        if(node->left != nullptr){
+            q.push(node->left);
+
+        }
+
+        if(node->right != nullptr){
+            q.push(node->right);
+        }
+
         delete(node);
-        preOderTraversal(node->left, result);
-        preOderTraversal(node->right, result);
+
     }
 }
 
@@ -39,21 +57,30 @@ void write_to_sst(vector<SSTNode>&result){
 }
 
 // Write with primary key.
-void create_index_tree(){
-
+void write_index_tree(vector<SSTNode>&result){
+    create_index_tree(result);
 }
 
 // Write with 2nd primary key.
-void create_b_tree(){
-    
+void write_index_b_tree(vector<SSTNode>&result){
+
 }
 
 // Flushing data from main memory to disk.
 void flush_to_sst(){
+    bool second_primary = false;
     vector<SSTNode> result;
-    preOderTraversal(avl.root, result);
+
+    if(second_primary){
+        write_index_b_tree(result);
+    }
+    else{
+        write_index_tree(result);
+    }
+
     avl.root = nullptr;
     write_to_sst(result);
+
     cout<<"Data flushed out!"<<endl;
 }
 

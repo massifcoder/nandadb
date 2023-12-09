@@ -9,11 +9,11 @@ extern AVLTree avl;
 
 void printInOrder();
 void creationAVL();
-void write_to_sst();
-void flush_to_sst(vector<SSTNode>&result);
-void create_b_tree();
-void create_index_tree();
-void preOderTraversal(Node* node, vector<SSTNode>&result);
+void write_to_sst(vector<SSTNode>&result);
+void flush_to_sst();
+void write_index_b_tree(vector<SSTNode>&result);
+void write_index_tree(vector<SSTNode>&result);
+void create_index_tree(Node* node, vector<SSTNode>&result);
 void load_from_sst();
 
 #endif
