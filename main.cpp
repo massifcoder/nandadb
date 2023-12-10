@@ -1,5 +1,6 @@
 // To run file, run : g++ main.cpp src/memotable.cpp src/utility.cpp -I include -lncurses
-// #include "utility.h"
+#include "utility.h"
+#include "field.h"
 #include<bits/stdc++.h>
 #include <chrono>
 using namespace std;
@@ -120,6 +121,7 @@ void demo(){
         }
         else if(query.substr(0,18) == "create collection "){
             string collection_name = query.substr(18, query.size()-18);
+            cout<<collection_name<<endl;
             if(collection_name.size() < 4){
                 cout<<"\033[1;31mName should be of size more than or equal to 4.\033[0m \n"<<endl;
             }
@@ -131,13 +133,16 @@ void demo(){
             }
             else{
                 vector<Collection> &collections = databases[usermode].collections;
+                bool isFound = false;
                 for(auto &collection : collections){
                     if(collection.name == collection_name){
+                        isFound = true;
                         cout<<"\033[1;31mCollection with same name already exists.\033[0m \n"<<endl;
+                        break;
                     }
-                    else{
-                        
-                    }
+                }
+                if(isFound == false){
+                    createSchema(collection_name);
                 }
             }
         }
