@@ -2,15 +2,8 @@
 #include "utility.h"
 
 int main() {
-    
-    //  Creation of an demo avl tree.
-    creationAVL();
 
-    // Printing values.
-    printInOrder();
-    // flush_to_sst();
-    // printInOrder();
-    
+    load_from_sst();
 
     return 0;
 }

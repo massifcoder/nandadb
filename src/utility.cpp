@@ -88,7 +88,7 @@ void flush_to_sst(){
 }
 
 long long find_location_by_key(int search_key){
-    ifstream index_in("index_1.lv_1", ios::binary);
+    ifstream index_in("SST_LV_1/index_1.lv_1", ios::binary);
 
     if(!index_in.is_open()){
         cout<<"Error in opening index file."<<endl;
@@ -99,6 +99,8 @@ long long find_location_by_key(int search_key){
     long long current_position = 0;
 
     while(index_in.read((char*)&indexNode, sizeof(indexNode))){
+        int val = indexNode.id;
+        cout<<val<<endl;
         if(indexNode.id == search_key){
             index_in.close();
             return indexNode.location;
@@ -110,18 +112,30 @@ long long find_location_by_key(int search_key){
             current_position = 2 * current_position + 2;
         }
 
-        // Check that current position is inside file, not beyond the file.
-        if(current_position >= index_in.tellg() ){
-            // Sorry, can not find the value.
-            break;
-        }
-
-        // Moving to the new calculated location.
-        index_in.seekg(current_position);
+        index_in.seekg(current_position * sizeof(indexNode), ios::beg);
+    
     }
 
     index_in.close();
     return -1;
+
+}
+
+void read_data_from_location(long long location){
+    ifstream data_in("SST_LV_1/sst_1.lv_1");
+
+    if(data_in.is_open()){
+        cout<<"Error in opening SST file. Check file location and error log file."<<endl;
+    }
+
+    data_in.seekg(location);
+
+    SSTNode dataNode;
+
+    data_in.read((char*)&dataNode, sizeof(dataNode));
+    
+    cout <<"Person with id: "<< dataNode.id<<" has name of "<<dataNode.name<< " with "<<dataNode.contact_number << " has purchased value of " << dataNode.purchased_value << endl;
+    data_in.close();
 
 }
 
@@ -131,5 +145,6 @@ void load_from_sst(){
     // 2 > Memory Management system (semaphores) cleared the assurance.
     // 3 > If p1_key given, then use index table, if p2_key then use file table, if not then iterate.
     // 4 > Add caching system with multilevel aging system.
-
+    long long location = find_location_by_key(1);
+    cout<<location<<endl;
 }
