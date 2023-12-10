@@ -146,5 +146,10 @@ void load_from_sst(){
     // 3 > If p1_key given, then use index table, if p2_key then use file table, if not then iterate.
     // 4 > Add caching system with multilevel aging system.
     long long location = find_location_by_key(1);
-    cout<<location<<endl;
+    if(location != -1){
+        read_data_from_location(location);
+    }
+    else{
+        cout<<"Data not present with this key id."<<endl;
+    }
 }
