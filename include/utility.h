@@ -6,6 +6,7 @@
 using namespace std;
 
 extern AVLTree avl;
+extern int MAX_NODE;
 
 void printInOrder();
 void creationAVL();

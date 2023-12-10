@@ -8,8 +8,9 @@ int main() {
 
     // Printing values.
     printInOrder();
-    flush_to_sst();
-    printInOrder();
+    // flush_to_sst();
+    // printInOrder();
+    
 
     return 0;
 }

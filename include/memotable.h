@@ -11,12 +11,16 @@ struct SSTNode {
     int purchased_value;
     char contact_number[10];
 
+    SSTNode();
+
     SSTNode(int key, string name, int umar, int pur, string contact);
 };
 
 struct IndexNode {
     int id;
     long long location;
+
+    IndexNode();
 
     IndexNode(int id, long long location);
 

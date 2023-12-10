@@ -8,6 +8,10 @@ SSTNode::SSTNode(int key, std::string name, int umar, int pur, std::string conta
 
 IndexNode::IndexNode(int key,long long loc) :id(key), location(loc) {}
 
+IndexNode::IndexNode(){}
+
+SSTNode::SSTNode(){}
+
 Node::Node(int key, string naam, int umar, int pur, string contact)
     : id(key), name(naam), age(umar), purchased_value(pur), contact_number(contact), height(1), left(nullptr), right(nullptr) {}
 
@@ -78,7 +82,7 @@ void AVLTree::insert(int id, string name, int age, int purchased_value, string c
 void AVLTree::printInOrder(Node* node) {
     if (node) {
         printInOrder(node->left);
-        cout << node->id << endl;
+        cout <<"Person with id: "<< node->id<<" has name of "<<node->name<< " with "<<node->contact_number << " has purchased value of " << node->purchased_value << endl;
         printInOrder(node->right);
     }
 }

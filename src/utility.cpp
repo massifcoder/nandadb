@@ -2,6 +2,7 @@
 
 // Global variable.
 AVLTree avl;
+int MAX_NODE = 1023;
 
 // Creation of AVL Tree.
 void creationAVL(){
@@ -55,17 +56,10 @@ void write_to_sst(vector<SSTNode>&result){
     }
 
     for(auto node : result){
-        // Writing data to file.
         data_out.write((char*)&node, sizeof(node));
-
-        // Getting the current position of data in file.
         long long location = data_out.tellp();
-        // SSTNode indexNode = {node.id, location};
-
-
-        // Storing the current position in index table.
-        index_out.write((char*)&location, sizeof(location));
-
+        IndexNode indexNode(node.id, location);
+        index_out.write((char*)&indexNode, sizeof(indexNode));
     }
 
     data_out.close();
@@ -76,32 +70,59 @@ void write_to_sst(vector<SSTNode>&result){
 // Write with primary key.
 void write_index_tree(vector<SSTNode>&result){
     create_index_tree(result);
-
     write_to_sst(result);
-
 }
 
 // Write with 2nd primary key.
-void write_index_b_tree(vector<SSTNode>&result){
-    create_index_tree(result);
+void write_index_b_tree(vector<SSTNode>&result){         // Will work in future.
+//     create_index_tree(result);
 }
 
 // Flushing data from main memory to disk.
 void flush_to_sst(){
     bool second_primary = false;
     vector<SSTNode> result;
-
-    if(second_primary){
-        write_index_b_tree(result);
-    }
-    else{
-        write_index_tree(result);
-    }
-
+    write_index_tree(result);
     avl.root = nullptr;
-    // write_to_sst(result);
-
     cout<<"Data flushed out!"<<endl;
+}
+
+long long find_location_by_key(int search_key){
+    ifstream index_in("index_1.lv_1", ios::binary);
+
+    if(!index_in.is_open()){
+        cout<<"Error in opening index file."<<endl;
+        return -1;
+    }
+
+    IndexNode indexNode;
+    long long current_position = 0;
+
+    while(index_in.read((char*)&indexNode, sizeof(indexNode))){
+        if(indexNode.id == search_key){
+            index_in.close();
+            return indexNode.location;
+        }
+        else if(indexNode.id > search_key){
+            current_position = 2 * current_position + 1;
+        }
+        else{
+            current_position = 2 * current_position + 2;
+        }
+
+        // Check that current position is inside file, not beyond the file.
+        if(current_position >= index_in.tellg() ){
+            // Sorry, can not find the value.
+            break;
+        }
+
+        // Moving to the new calculated location.
+        index_in.seekg(current_position);
+    }
+
+    index_in.close();
+    return -1;
+
 }
 
 void load_from_sst(){
