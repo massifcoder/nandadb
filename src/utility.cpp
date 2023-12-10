@@ -59,11 +59,12 @@ void write_to_sst(vector<SSTNode>&result){
 // Write with primary key.
 void write_index_tree(vector<SSTNode>&result){
     create_index_tree(result);
+
 }
 
 // Write with 2nd primary key.
 void write_index_b_tree(vector<SSTNode>&result){
-
+    create_index_tree(result);
 }
 
 // Flushing data from main memory to disk.
