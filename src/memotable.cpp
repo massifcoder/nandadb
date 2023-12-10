@@ -6,6 +6,7 @@ SSTNode::SSTNode(int key, std::string name, int umar, int pur, std::string conta
     strcpy(this->contact_number, contact.c_str());
 }
 
+IndexNode::IndexNode(int key,long long loc) :id(key), location(loc) {}
 
 Node::Node(int key, string naam, int umar, int pur, string contact)
     : id(key), name(naam), age(umar), purchased_value(pur), contact_number(contact), height(1), left(nullptr), right(nullptr) {}

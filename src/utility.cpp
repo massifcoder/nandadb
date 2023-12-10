@@ -21,6 +21,7 @@ void create_index_tree(vector<SSTNode>&result){
     if(avl.root == nullptr){
         return;
     }
+
     queue<Node*> q;
     q.push(avl.root);
     while(!q.empty()){
@@ -45,20 +46,38 @@ void create_index_tree(vector<SSTNode>&result){
 
 // Write to disk.
 void write_to_sst(vector<SSTNode>&result){
-    ofstream out("SST_LV_1/sst_1.lv_1");
-    if(!out.is_open()){
-        cout<<"Error in opening file."<<endl;
-        return;
+
+    ofstream data_out("SST_LV_1/sst_1.lv_1", ios::binary);
+    ofstream index_out("SST_LV_1/index_1.lv_1", ios::binary);
+
+    if(!data_out.is_open() || !index_out.is_open()){
+        cout<<"File is not opening, some errors in file system, run some debugging methods."<<endl;
     }
+
     for(auto node : result){
-        out.write((char*)&node, sizeof(node));
+        // Writing data to file.
+        data_out.write((char*)&node, sizeof(node));
+
+        // Getting the current position of data in file.
+        long long location = data_out.tellp();
+        // SSTNode indexNode = {node.id, location};
+
+
+        // Storing the current position in index table.
+        index_out.write((char*)&location, sizeof(location));
+
     }
-    out.close();
+
+    data_out.close();
+    index_out.close();
+
 }
 
 // Write with primary key.
 void write_index_tree(vector<SSTNode>&result){
     create_index_tree(result);
+
+    write_to_sst(result);
 
 }
 
@@ -80,7 +99,7 @@ void flush_to_sst(){
     }
 
     avl.root = nullptr;
-    write_to_sst(result);
+    // write_to_sst(result);
 
     cout<<"Data flushed out!"<<endl;
 }

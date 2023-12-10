@@ -14,6 +14,14 @@ struct SSTNode {
     SSTNode(int key, string name, int umar, int pur, string contact);
 };
 
+struct IndexNode {
+    int id;
+    long long location;
+
+    IndexNode(int id, long long location);
+
+};
+
 struct Node {
     int id;
     string name;
