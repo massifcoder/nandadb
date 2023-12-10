@@ -56,8 +56,8 @@ void write_to_sst(vector<SSTNode>&result){
     }
 
     for(auto node : result){
-        data_out.write((char*)&node, sizeof(node));
         long long location = data_out.tellp();
+        data_out.write((char*)&node, sizeof(node));
         IndexNode indexNode(node.id, location);
         index_out.write((char*)&indexNode, sizeof(indexNode));
     }
@@ -124,13 +124,13 @@ long long find_location_by_key(int search_key){
 void read_data_from_location(long long location){
     ifstream data_in("SST_LV_1/sst_1.lv_1");
 
-    if(data_in.is_open()){
+    if(!data_in.is_open()){
         cout<<"Error in opening SST file. Check file location and error log file."<<endl;
+        return ;
     }
 
-    data_in.seekg(location);
-
     SSTNode dataNode;
+    data_in.seekg(location);
 
     data_in.read((char*)&dataNode, sizeof(dataNode));
     
@@ -140,11 +140,6 @@ void read_data_from_location(long long location){
 }
 
 void load_from_sst(){
-    // Assumptions :
-    // 1 > Bloom filters give hint.
-    // 2 > Memory Management system (semaphores) cleared the assurance.
-    // 3 > If p1_key given, then use index table, if p2_key then use file table, if not then iterate.
-    // 4 > Add caching system with multilevel aging system.
     long long location = find_location_by_key(1);
     if(location != -1){
         read_data_from_location(location);

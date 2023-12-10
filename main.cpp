@@ -3,6 +3,8 @@
 
 int main() {
 
+    creationAVL();
+    flush_to_sst();
     load_from_sst();
 
     return 0;
