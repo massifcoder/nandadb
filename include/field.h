@@ -2,6 +2,9 @@
 #define FIELD_H
 
 #include <bits/stdc++.h>
+#include <filesystem>
+namespace fs = std::filesystem;
+
 using namespace std;
 
 struct Field {

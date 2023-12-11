@@ -28,10 +28,19 @@ size_t Field::getSizeOfType(const std::string &fieldType){
 
 void addTable(DatabaseMetadata &metadata, const TableSchema &table){
     metadata.tables[table.tableName] = table;
+    fs::path base_path = fs::current_path();
+    string collection_directory = string(base_path) + table.tableName;
+    if(!fs::exists(collection_directory)){
+        fs::create_directory(collection_directory);
+    } 
+    ofstream meta_data_out("metadata");
+    string data_to_write = "name:"+table.tableName;
+    meta_data_out << data_to_write;
+
 }
 
 void printMetadata(const DatabaseMetadata &metadata){
-    std::cout << "Database Metadata:\n";
+    cout << "Database Metadata:\n";
     for (const auto &[tableName, table] : metadata.tables){
         std::cout << "Table: " << table.tableName << "\n";
         std::cout << "Fields:\n";
@@ -47,7 +56,7 @@ void createSchema(string nameTable){
     userTable.tableName = nameTable;
 
     int number_of_fields;
-    cout<<"Enter the number of fields you want to enter: ";
+    cout<<"\nEnter the number of fields you want to enter: ";
     cin>>number_of_fields;
 
     string field_name;

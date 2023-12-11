@@ -136,7 +136,7 @@ void read_data_from_location(long long location){
 }
 
 void load_from_sst(){
-    long long location = find_location_by_key(1);
+    long long location = find_location_by_key(2);
     if(location != -1){
         read_data_from_location(location);
     }
