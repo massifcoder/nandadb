@@ -33,9 +33,21 @@ void addTable(DatabaseMetadata &metadata, const TableSchema &table){
     if(!fs::exists(collection_directory)){
         fs::create_directory(collection_directory);
     } 
-    ofstream meta_data_out("metadata");
+    collection_directory += "/metadata";
+    ofstream meta_data_out(collection_directory);
     string data_to_write = "name:"+table.tableName;
     meta_data_out << data_to_write;
+    vector<Field> collection = table.fields;
+    data_to_write = "fields:"+ table.tableName.size();
+    meta_data_out << data_to_write;
+    for(auto field : collection){
+        data_to_write = "name:" + string(field.name);
+        meta_data_out << data_to_write;
+        data_to_write = "type:" + string(field.type);
+        meta_data_out << data_to_write;
+        data_to_write = "size:" + field.size;
+        meta_data_out << data_to_write;
+    }
 }
 
 void printMetadata(const DatabaseMetadata &metadata){
