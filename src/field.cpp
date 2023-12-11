@@ -29,14 +29,13 @@ size_t Field::getSizeOfType(const std::string &fieldType){
 void addTable(DatabaseMetadata &metadata, const TableSchema &table){
     metadata.tables[table.tableName] = table;
     fs::path base_path = fs::current_path();
-    string collection_directory = string(base_path) + table.tableName;
+    string collection_directory = string(base_path) + "/database/massifcoder/" + table.tableName;
     if(!fs::exists(collection_directory)){
         fs::create_directory(collection_directory);
     } 
     ofstream meta_data_out("metadata");
     string data_to_write = "name:"+table.tableName;
     meta_data_out << data_to_write;
-
 }
 
 void printMetadata(const DatabaseMetadata &metadata){
