@@ -1,53 +1,78 @@
 #include "console.h"
 
-bool passed_post = false;
+void clearScreen()
+{
+    cout << "\033[2J\033[H";
+}
 
-void POST(){
+bool verify_database_file(){
+    fs::path base_path = fs::current_path();
+    string directory_path = string(base_path) + "/database";
+    if(!fs::exists(directory_path)){
+        return false;
+    }
+    for(auto database : NandaDB.Databases){
+        string database_path = directory_path + "/" + database.first;
+        if(!fs::exists(database_path)){
+            return false;
+        }
+        for(auto collection : database.second.collections){
+            string collection_path = database_path + "/" + collection.name;
+            if(!fs::exists(collection_path)){
+                return false;
+            }
+            for(auto level : collection.levels){
+                string level_path = collection_path + "/" + level;
+                if(!fs::exists(level_path)){
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool performPOST(){
     cout<<"Power On Self Test."<<endl; 
     cout<<"Hold..."<<endl;
     cout<<endl;
 
-    ifstream f("metadata.db");
-    if(!f.good()){
+    ifstream i("metadata.db");
+
+    if(!i.is_open()){
         cout<<"System Crashed!"<<endl;
-    }
-    else{
-        cout<<"Loading Nanda DB..."<<endl;
-        cout<<endl;
+        return false;
     }
 
-    ifstream i("metadata.db");
     json j;
     i>>j;
     i.close();
 
     NandaDB.name = j["name"];
-    for(auto db : j["Databases"]){
+    for(auto db : j["databases"]){
         Db temp(db["name"]);
         for(auto collection : db["collections"]){
-            Collection temp2(collection["name"]);
+            Collection temp2(collection["name"], collection["levels"]);
             temp.collections.push_back(temp2);
         }
         NandaDB.Databases[temp.name] = temp;
     }
 
-    cout<<NandaDB.name<<" loaded."<<endl;
-    cout<<endl;
-    for(auto db : NandaDB.Databases){
-        cout<<db.first<<" loaded."<<endl;
-        for(auto collection : db.second.collections){
-            cout<<collection.name<<" loaded."<<endl;
-        }
+    bool passed_post = verify_database_file();
+
+    if(passed_post){
+        cout<<"System is ready to use."<<endl;
         cout<<endl;
+        cout<<"Press any key to continue..."<<endl;
+        getchar();
+        clearScreen();
+        return true;
+    }
+    else{
+        cout<<"System Crashed, due to missing directory files!"<<endl;
+        return false;
     }
 
-    cout<<"Nanda DB loaded."<<endl;
-    cout<<endl;
-    cout<<"Nanda DB is ready to use."<<endl;
-    cout<<endl;
-    cout<<"Press any key to continue..."<<endl;
-    getch();
-    passed_post = true;
 }
 
 bool verify()
@@ -70,10 +95,6 @@ bool verify()
     }
 }
 
-void clearScreen()
-{
-    cout << "\033[2J\033[H";
-}
 
 void help()
 {
@@ -81,11 +102,42 @@ void help()
          << endl;
 }
 
-void Console(){
-    if(!passed_post){
-        cout<<"Failed POST test, means you have done something wrong with the structure."<<endl;
-        return;
+json convertToJSON(const nandaDB& NandaDB) {
+    json j;
+    j["name"] = NandaDB.name;
+
+    for (const auto& database : NandaDB.Databases) {
+        json dbJson;
+        dbJson["name"] = database.second.name;
+
+        for (const auto& collection : database.second.collections) {
+            json collectionJson;
+            collectionJson["name"] = collection.name;
+            collectionJson["levels"] = collection.levels;
+            dbJson["collections"].push_back(collectionJson);
+        }
+
+        j["databases"].push_back(dbJson);
     }
+
+    return j;
+}
+
+void saveMetadata() {
+    json j = convertToJSON(NandaDB);
+    ofstream o("metadata.db");
+    o << setw(4) << j << endl;
+    o.close();
+}
+
+void createFiles(const Collection& collection, string directory_path) {
+    for (const auto& level : collection.levels) {
+        std::ofstream file(directory_path + "/" + level + ".sst");
+        file.close();
+    }
+}
+
+void Console(){
     bool login = verify();
     if (!login)
     {
@@ -109,7 +161,7 @@ void Console(){
         }
         else if (query == "show databases")
         {
-            usermode = "Nanda DB";
+            usermode = NandaDB.name;
             cout << "\033[1;31mList of databases:\033[0m" << endl;
             for (auto database : NandaDB.Databases)
             {
@@ -134,7 +186,7 @@ void Console(){
                 cout << endl;
             }
         }
-        else if (query == "add")
+        else if (query.substr(0,7) == "insert ")
         {
             auto start = chrono::high_resolution_clock::now();
             // Start code
@@ -146,7 +198,7 @@ void Console(){
         }
         else if (query == "show collections")
         {
-            if (usermode == "Nanda DB")
+            if (usermode == NandaDB.name)
             {
                 cout << "\033[1;31mSelect a database where you want to work.\033[0m \n"
                      << endl;
@@ -179,9 +231,10 @@ void Console(){
             else
             {
                 fs::path base_path = fs::current_path();
-                fs::path directory_path = base_path / "database" / database_name;
+                string directory_path = string(base_path) + "/database/" + database_name;
                 fs::create_directory(directory_path);
                 NandaDB.Databases[database_name] = Db(database_name);
+                saveMetadata();
                 cout << "\033[1;31mDatabase created successfully.\033[0m \n"<< endl;
             }
         }
@@ -194,7 +247,7 @@ void Console(){
                 cout << "\033[1;31mName should be of size more than or equal to 4.\033[0m \n"
                      << endl;
             }
-            else if (usermode == "Nanda DB")
+            else if (usermode == NandaDB.name)
             {
                 cout << "\033[1;31mSelect a database where you want to work.\033[0m \n"
                      << endl;
@@ -219,18 +272,102 @@ void Console(){
                 if (isFound == false)
                 {
                     fs::path base_path = fs::current_path();
-                    fs::path directory_path = base_path / "database" / usermode / collection_name;
+                    string directory_path = string(base_path) + "/database/" + usermode + "/" + collection_name;
                     fs::create_directory(directory_path);
-                    NandaDB.Databases[usermode].collections.push_back(Collection(collection_name));
+                    Collection to_ad = Collection(collection_name, {"memo", "SST_LV_1", "SST_LV_2"});
+                    NandaDB.Databases[usermode].collections.push_back(to_ad);
+                    createFiles(to_ad, directory_path);
+                    saveMetadata();
                     cout << "\033[1;31mCollection created successfully.\033[0m \n"<< endl;
                 }
             }
         }
-        else if (query == "delete")
+        else if (query.substr(0, 16) == "delete database ")
         {
+            string database_name = query.substr(16, query.size() - 16);
+            cout << database_name << endl;
+            if (database_name.size() < 4)
+            {
+                cout << "\033[1;31mName should be of size more than or equal to 4.\033[0m \n"<< endl;
+            }
+            else if (NandaDB.Databases.find(database_name) == NandaDB.Databases.end())
+            {
+                cout << "\033[1;31mNo such database present.\033[0m" << endl;
+            }
+            else
+            {
+                fs::path base_path = fs::current_path();
+                string directory_path = string(base_path) + "/database/" + database_name;
+                fs::remove_all(directory_path);
+                NandaDB.Databases.erase(database_name);
+                usermode = NandaDB.name;
+                saveMetadata();
+                cout << "\033[1;31mDatabase deleted successfully.\033[0m \n"<< endl;
+            }
         }
-        else if (query == "search")
+        else if (query.substr(0, 18) == "delete collection ")
         {
+            string collection_name = query.substr(18, query.size() - 18);
+            cout << collection_name << endl;
+            if (collection_name.size() < 4)
+            {
+                cout << "\033[1;31mName should be of size more than or equal to 4.\033[0m \n"<< endl;
+            }
+            else if (usermode == NandaDB.name)
+            {
+                cout << "\033[1;31mSelect a database where you want to work.\033[0m \n"<< endl;
+            }
+            else if (NandaDB.Databases.find(usermode) == NandaDB.Databases.end())
+            {
+                cout << "\033[1;31mNo such database present.\033[0m" << endl;
+            }
+            else
+            {
+                vector<Collection> &collections = NandaDB.Databases[usermode].collections;
+                bool isFound = false;
+                for (auto it = collections.begin(); it != collections.end(); ++it)
+                {
+                    if (it->name == collection_name)
+                    {
+                        isFound = true;
+                        fs::path base_path = fs::current_path();
+                        string directory_path = string(base_path) + "/database/" + usermode + "/" + collection_name;
+                        fs::remove_all(directory_path);
+                        collections.erase(it);
+                        saveMetadata();
+                        cout << "\033[1;31mCollection deleted successfully.\033[0m \n" << endl;
+                        break;
+                    }
+                }
+                if (isFound == false)
+                {
+                    cout << "\033[1;31mNo such collection present.\033[0m" << endl;
+                }
+            }
+        }
+        else if (query.substr(0, 7) == "delete ")
+        {
+            if(usermode == NandaDB.name){
+                cout << "\033[1;31mSelect a database where you want to work.\033[0m \n"<< endl;
+            }
+            else if (NandaDB.Databases.find(usermode) == NandaDB.Databases.end()){
+                cout << "\033[1;31mSelect a collection where you want to work.\033[0m \n"<< endl;
+            }
+            else{
+                cout<<"Working"<<endl;
+            }
+        }
+        else if (query.substr(0, 7) == "select ")
+        {
+            if(usermode == NandaDB.name){
+                cout << "\033[1;31mSelect a database where you want to work.\033[0m \n"<< endl;
+            }
+            else if (NandaDB.Databases.find(usermode) == NandaDB.Databases.end()){
+                cout << "\033[1;31mSelect a collection where you want to work.\033[0m \n"<< endl;
+            }
+            else{
+                cout<<"Working"<<endl;
+            }
         }
         else if (query == "exit")
         {

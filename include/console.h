@@ -12,10 +12,8 @@
 #define pwd "vishal"
 using namespace std;
 
-extern bool passed_post;
-
 void Console();
 
-void POST();
+bool performPOST();
 
 #endif

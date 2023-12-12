@@ -7,13 +7,18 @@ using namespace std;
 int main()
 {
 
-    POST();
+    bool passed_post = performPOST();
+
+    if(!passed_post){
+        cout<<"System Crashed!"<<endl;
+        return 0;
+    }
 
     int console_network_both = 0;
 
     cout<<"If you want to use only console, press 1."<<endl;
     cout<<"If you want to use only network, press 2."<<endl;
-    cout<<"If you want to use both, press 3."<<endl;
+    cout<<"If you want to use both, press 3.\n"<<endl;
 
     cin>>console_network_both;
 

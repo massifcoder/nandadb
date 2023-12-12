@@ -16,8 +16,11 @@ using json = nlohmann::json;
 struct Collection
 {
     string name;
+    vector<string> levels;
     Collection() = default;
-    Collection(string name);
+    Collection(string name, vector<string> levels);
+
+    bool operator==(const Collection &c);
 };
 
 struct Db

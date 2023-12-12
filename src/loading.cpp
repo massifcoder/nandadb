@@ -1,11 +1,5 @@
 #include "loading.h"
 
-
-Collection::Collection(string name)
-{
-    this->name = name;
-}
-
 Db::Db(string name)
 {
     this->name = name;
@@ -20,3 +14,14 @@ nandaDB::nandaDB(string name, vector<Db> Databases)
 }
 
 struct nandaDB NandaDB;
+
+bool Collection::operator==(const Collection &c)
+{
+    return false;
+}
+
+Collection::Collection(string name, vector<string> levels)
+{
+    this->name = name;
+    this->levels = levels;
+}
