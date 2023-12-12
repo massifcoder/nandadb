@@ -1,19 +1,22 @@
 #include "memotable.h"
 
+SSTNode::SSTNode() : id(0) {}
 
-SSTNode::SSTNode(int key, std::string name, int umar, int pur, std::string contact) : id(key), age(umar), purchased_value(pur) {
-    strcpy(this->name, name.c_str());
-    strcpy(this->contact_number, contact.c_str());
+SSTNode::SSTNode(int key, const std::vector<std::pair<std::string, std::string>>& pairs) : id(key) {
+    for(auto pair : pairs){
+        this->pairs[pair.first] = pair.second;
+    }
 }
 
-IndexNode::IndexNode(int key,long long loc) :id(key), location(loc) {}
+
+IndexNode::IndexNode(int _id,long long _location, size_t _structSize) :id(_id), location(_location), structSize(_structSize) {}
 
 IndexNode::IndexNode(){}
 
-SSTNode::SSTNode(){}
+Node::Node() : id(0), height(0), left(nullptr), right(nullptr), schemaSize(0) {}
 
-Node::Node(int key, string naam, int umar, int pur, string contact)
-    : id(key), name(naam), age(umar), purchased_value(pur), contact_number(contact), height(1), left(nullptr), right(nullptr) {}
+Node::Node(int key, vector<pair<string, string>>&pairsVal)
+    : id(key),pairs(pairsVal) , height(1), left(nullptr), right(nullptr) {}
 
 int AVLTree::getHeight(Node *node){
     return (node) ? node->height : 0;
@@ -47,42 +50,49 @@ Node *AVLTree::rotateLeft(Node *node){
     return x;
 }
 
-Node* AVLTree::insert(Node* node, int key, string name, int age, int purchased_value, string contact_number) {
+Node* AVLTree::insert(Node* node, int key, vector<pair<string, string>>&pairs) {
     if (!node) {
-        return new Node(key, name, age, purchased_value, contact_number);
+        return new Node(key, pairs);
     }
 
     if (key < node->id) {
-        node->left = insert(node->left, key, name, age, purchased_value, contact_number);
+        node->left = insert(node->left, key, pairs);
     } else if (key > node->id) {
-        node->right = insert(node->right, key, name, age, purchased_value, contact_number);
+        node->right = insert(node->right, key, pairs);
     } else {
-        return node; // Assuming you don't want duplicates
+        return node;
     }
 
     node->height = 1 + max(getHeight(node->left), getHeight(node->right));
     int balance = getBalanceFactor(node);
 
     if (balance > 1 && key < node->left->id) {
-        return rotateRight(node);
+        if (node->left != nullptr) {
+            return rotateRight(node);
+        }
     }
 
     if (balance < -1 && key > node->right->id) {
-        return rotateLeft(node);
+        if (node->right != nullptr) {
+            return rotateLeft(node);
+        }
     }
 
     return node;
 }
 
 
-void AVLTree::insert(int id, string name, int age, int purchased_value, string contact_number){
-    root = insert(root, id, name, age, purchased_value, contact_number);
+void AVLTree::insert(int id, vector<pair<string, string>>&pairs){
+    root = insert(root, id, pairs);
 }
 
 void AVLTree::printInOrder(Node* node) {
     if (node) {
         printInOrder(node->left);
-        cout <<"Person with id: "<< node->id<<" has name of "<<node->name<< " with "<<node->contact_number << " has purchased value of " << node->purchased_value << endl;
+        cout<<"Person with id "<<node->id<<" has ";
+        for(auto filed : node->pairs){
+            cout<<filed.first<<" with value "<<filed.second<<" ";
+        }
         printInOrder(node->right);
     }
 }

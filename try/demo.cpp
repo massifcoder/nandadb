@@ -1,99 +1,132 @@
-#include<bits/stdc++.h>
+#include <iostream>
+#include <unordered_map>
+#include <algorithm>
+#include <string>
 using namespace std;
 
-// Define a structure to represent a field in the table schema
-struct Field {
-    char name[32];
-    char type[32];
-    size_t size;
+struct Node {
+public:
+    int key;
+    unordered_map<string, string> schema;
+    Node* left;
+    Node* right;
+    int height;
 
-    Field(const std::string& fieldName, const std::string& fieldType)
-        : size(getSizeOfType(fieldType)) {
-            strncpy(this->name,fieldName.c_str(), sizeof(this->name)-1);
-            this->name[sizeof(this->name) - 1] = '\0';
-            strncpy(this->type,fieldType.c_str(), sizeof(this->type)-1);
-            this->type[sizeof(this->type) - 1] = '\0';
+    Node(int k, string field, string value) : key(k), left(nullptr), right(nullptr), height(1) {
+        schema[field] = value;
+    }
+};
+
+struct AVLTree {
+    Node* root;
+
+    AVLTree() : root(nullptr) {}
+
+    int getHeight(Node* node) {
+        if (!node) return 0;
+        return node->height;
+    }
+
+    int getBalance(Node* node) {
+        if (!node) return 0;
+        return getHeight(node->left) - getHeight(node->right);
+    }
+
+    Node* rightRotate(Node* y) {
+        Node* x = y->left;
+        Node* T2 = x->right;
+
+        x->right = y;
+        y->left = T2;
+
+        y->height = 1 + std::max(getHeight(y->left), getHeight(y->right));
+        x->height = 1 + std::max(getHeight(x->left), getHeight(x->right));
+
+        return x;
+    }
+
+    Node* leftRotate(Node* x) {
+        Node* y = x->right;
+        Node* T2 = y->left;
+
+        y->left = x;
+        x->right = T2;
+
+        x->height = 1 + std::max(getHeight(x->left), getHeight(x->right));
+        y->height = 1 + std::max(getHeight(y->left), getHeight(y->right));
+
+        return y;
+    }
+
+    Node* insert(Node* node, int key, string field, string value) {
+        if (!node) return new Node(key, field, value);
+
+        if (key < node->key)
+            node->left = insert(node->left, key, field, value);
+        else if (key > node->key)
+            node->right = insert(node->right, key, field, value);
+        else
+            return node;
+
+        node->height = 1 + std::max(getHeight(node->left), getHeight(node->right));
+
+        int balance = getBalance(node);
+
+        if (balance > 1 && key < node->left->key)
+            return rightRotate(node);
+
+        if (balance < -1 && key > node->right->key)
+            return leftRotate(node);
+
+        if (balance > 1 && key > node->left->key) {
+            node->left = leftRotate(node->left);
+            return rightRotate(node);
         }
 
-    size_t getSizeOfType(const std::string& fieldType) const {
-        // Define your logic to determine the size based on the type
-        // For simplicity, this example assumes fixed sizes for some types
-        std::unordered_map<std::string, size_t> typeSize{
-            {"int", sizeof(int)},
-            {"double", sizeof(double)},
-            {"string", sizeof(std::string)}
-            // Add more types as needed
-        };
+        if (balance < -1 && key < node->right->key) {
+            node->right = rightRotate(node->right);
+            return leftRotate(node);
+        }
 
-        auto it = typeSize.find(fieldType);
-        if (it != typeSize.end()) {
-            return it->second;
-        } else {
-            // Default size for unknown types
-            return 0;
+        return node;
+    }
+
+    void insert(int key, string field, string value) {
+        root = insert(root, key, field, value);
+    }
+
+    void inorderTraversal(Node* node) {
+        if (node) {
+            inorderTraversal(node->left);
+            std::cout << node->key << " ";
+            inorderTraversal(node->right);
         }
     }
 
-};
-
-// Define a structure to represent the table schema
-struct TableSchema {
-    std::string tableName;
-    std::vector<Field> fields;
-};
-
-// Define a structure to represent metadata for a database
-struct DatabaseMetadata {
-    std::unordered_map<std::string, TableSchema> tables;
-};
-
-// Function to add a table to the database metadata
-void addTable(DatabaseMetadata& metadata, const TableSchema& table) {
-    metadata.tables[table.tableName] = table;
-}
-
-// Function to print the metadata of a database
-void printMetadata(const DatabaseMetadata& metadata) {
-    std::cout << "Database Metadata:\n";
-    for (const auto& [tableName, table] : metadata.tables) {
-        std::cout << "Table: " << table.tableName << "\n";
-        std::cout << "Fields:\n";
-        for (const auto& field : table.fields) {
-            std::cout << "  Name: " << field.name << ", Type: " << field.type << ", Size: " << field.size << "\n";
-        }
-        std::cout << "\n";
+    void inorderTraversal() {
+        inorderTraversal(root);
     }
-}
+};
 
 int main() {
-    DatabaseMetadata myDatabase;
+    AVLTree avlTree;
 
-    // Define a schema for a user-defined table
-    TableSchema userTable;
-    cout<<"Enter the name of Table."<<endl;
-    string nameTable;
-    cin>>nameTable;
-    userTable.tableName = nameTable;
-
-    int number_of_fields;
-    cout<<"Enter the number of fields you want to enter: ";
-    cin>>number_of_fields;
-
-    string field_name;
-    string field_type;
-    for(int i=0; i<number_of_fields; i++){
-        cout<<"Enter the filed name: ";
-        cin>>field_name;
-        cout<<"Enter the field type: ";
-        cin>>field_type;
-        userTable.fields.push_back({field_name, field_type});
+    // avlTree.insert(10);
+    // avlTree.insert(20);
+    // avlTree.insert(30);
+    vector<pair<string,string>> pairs;
+    int n = 4;
+    for(int i=0; i<n; i++){
+        string field, value;
+        cout<<"Enter the field value: ";
+        cin>>field;
+        cout<<"Enter the value for this field: ";
+        cin>>value;
+        avlTree.insert(i, field, value);
     }
 
-    // Add the user-defined table to the database metadata
-    addTable(myDatabase, userTable);
-
-    // Print the metadata of the database
-    printMetadata(myDatabase);
-
+    cout << "Inorder traversal of the constructed AVL tree is: ";
+    avlTree.inorderTraversal();
+    
     return 0;
 }

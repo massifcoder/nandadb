@@ -4,20 +4,22 @@
 AVLTree avl;
 int MAX_NODE = 1023;
 
-// Creation of AVL Tree.
-void creationAVL(){
-    avl.insert(1, "John", 25, 100, "1234567890");
-    avl.insert(2, "Jane", 30, 150, "9876543210");
-    avl.insert(3, "Bob", 22, 80, "5555555555");
-}
 
-// Printing AVL Tree using in-order traversal.
 void printInOrder(){
     avl.printInOrder();
 }
 
-// Taking data as vector in pre-order traversal.
-void create_index_tree(vector<SSTNode>&result){
+string serialize(Node* node){
+    string serialised = "id:";
+    serialised += to_string(node->id) + ",";
+    for(int i=0; i<node->pairs.size(); i++){
+        serialised += node->pairs[i].first + ":";
+        serialised += node->pairs[i].second + ",";
+    }
+    return serialised;
+}
+
+void create_index_tree(vector<pair<int,string>>&result){
     
     if(avl.root == nullptr){
         return;
@@ -29,8 +31,9 @@ void create_index_tree(vector<SSTNode>&result){
 
         Node* node = q.front();
         q.pop();
-        result.push_back(SSTNode(node->id, node->name, node->age, node->purchased_value, node->contact_number));
-        
+        string serl = serialize(node);
+        cout<<"Size is :"<<serl.size()<<endl;
+        result.push_back({node->id ,serl});
         if(node->left != nullptr){
             q.push(node->left);
 
@@ -46,7 +49,7 @@ void create_index_tree(vector<SSTNode>&result){
 }
 
 // Write to disk.
-void write_to_sst(vector<SSTNode>&result){
+void write_to_sst(vector<pair<int,string>>&result){
 
     ofstream data_out("SST_LV_1/sst_1.lv_1", ios::binary);
     ofstream index_out("SST_LV_1/index_1.lv_1", ios::binary);
@@ -56,9 +59,14 @@ void write_to_sst(vector<SSTNode>&result){
     }
 
     for(auto node : result){
+        int size = node.second.size()+1;
+        char data[size];
+        strcpy(data, node.second.c_str());
+        data[size] = '\0';
         long long location = data_out.tellp();
-        data_out.write((char*)&node, sizeof(node));
-        IndexNode indexNode(node.id, location);
+        data_out.write((char*)(&data), size);
+        long long endLocation = data_out.tellp();
+        IndexNode indexNode(node.first, location, size_t(endLocation-location));
         index_out.write((char*)&indexNode, sizeof(indexNode));
     }
 
@@ -68,27 +76,25 @@ void write_to_sst(vector<SSTNode>&result){
 }
 
 // Write with primary key.
-void write_index_tree(vector<SSTNode>&result){
+void write_index_tree(vector<pair<int,string>>&result){
     create_index_tree(result);
     write_to_sst(result);
 }
 
-
 // Flushing data from main memory to disk.
 void flush_to_sst(){
-    bool second_primary = false;
-    vector<SSTNode> result;
+    vector<pair<int,string>> result;
     write_index_tree(result);
     avl.root = nullptr;
     cout<<"Data flushed out!"<<endl;
 }
 
-long long find_location_by_key(int search_key){
+pair<long long, size_t> find_location_by_key(int search_key){
     ifstream index_in("SST_LV_1/index_1.lv_1", ios::binary);
 
     if(!index_in.is_open()){
         cout<<"Error in opening index file."<<endl;
-        return -1;
+        return {-1,-1};
     }
 
     IndexNode indexNode;
@@ -96,10 +102,9 @@ long long find_location_by_key(int search_key){
 
     while(index_in.read((char*)&indexNode, sizeof(indexNode))){
         int val = indexNode.id;
-        cout<<val<<endl;
         if(indexNode.id == search_key){
             index_in.close();
-            return indexNode.location;
+            return {indexNode.location, indexNode.structSize};
         }
         else if(indexNode.id > search_key){
             current_position = 2 * current_position + 1;
@@ -113,11 +118,32 @@ long long find_location_by_key(int search_key){
     }
 
     index_in.close();
-    return -1;
+    return {-1, -1};
 
 }
 
-void read_data_from_location(long long location){
+void deserialize(string serialised, Node& dataNode){
+    int i=0;
+    string key="";
+    string value="";
+    while(i<serialised.size()){
+        if(serialised[i] == ':'){
+            key = value;
+            value = "";
+        }
+        else if(serialised[i] == ','){
+            dataNode.pairs.push_back({key, value});
+            key = "";
+            value = "";
+        }
+        else{
+            value += serialised[i];
+        }
+        i++;
+    }
+}
+
+void read_data_from_location(long long location, size_t structSize){
     ifstream data_in("SST_LV_1/sst_1.lv_1");
 
     if(!data_in.is_open()){
@@ -125,20 +151,33 @@ void read_data_from_location(long long location){
         return ;
     }
 
-    SSTNode dataNode;
     data_in.seekg(location);
+    if (!data_in.is_open()) {
+        cout<<"Error"<<endl;
+    }
+    char serialised[structSize];
+    cout<<structSize<<endl;
+    data_in.read((char*)&serialised, structSize);
+    cout<<"Serialed data is:";
+    cout<<serialised<<endl;
 
-    data_in.read((char*)&dataNode, sizeof(dataNode));
-    
-    cout <<"Person with id: "<< dataNode.id<<" has name of "<<dataNode.name<< " with "<<dataNode.contact_number << " has purchased value of " << dataNode.purchased_value << endl;
+    Node dataNode;
+    deserialize(serialised, dataNode);
+
+    cout<<"Data is: "<<endl;
+    for(auto pair : dataNode.pairs){
+        cout<<pair.first<<" : "<<pair.second<<endl;
+    }
+
     data_in.close();
 
 }
 
 void load_from_sst(){
-    long long location = find_location_by_key(2);
-    if(location != -1){
-        read_data_from_location(location);
+    pair<long long, size_t> info = find_location_by_key(3);
+    if(info.first != -1){
+        cout<<"Struct is at location: "<<info.first<<endl;
+        read_data_from_location(info.first, info.second);
     }
     else{
         cout<<"Data not present with this key id."<<endl;

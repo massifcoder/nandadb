@@ -6,37 +6,32 @@ using namespace std;
 
 struct SSTNode {
     int id;
-    char name[20];
-    int age;
-    int purchased_value;
-    char contact_number[10];
-
+    unordered_map<string, any> pairs;
     SSTNode();
-
-    SSTNode(int key, string name, int umar, int pur, string contact);
+    SSTNode(int key, const vector<pair<string, string>>& pairs);
 };
 
 struct IndexNode {
     int id;
     long long location;
+    size_t structSize;
 
     IndexNode();
 
-    IndexNode(int id, long long location);
+    IndexNode(int id, long long location, size_t structSize);
 
 };
 
 struct Node {
     int id;
-    string name;
-    int age;
-    int purchased_value;
-    string contact_number;
+    vector<pair<string, string>> pairs;
     int height;
     Node* right;
     Node* left;
+    size_t schemaSize;
+    Node();
 
-    Node(int key, string naam, int umar, int pur, string contact);
+    Node(int key, vector<pair<string, string>>&pairs);
 };
 
 class AVLTree {
@@ -47,8 +42,8 @@ public:
     int getBalanceFactor(Node* node);
     Node* rotateRight(Node* node);
     Node* rotateLeft(Node* node);
-    Node* insert(Node* node, int key, string name, int age, int purchased_value, string contact_number);
-    void insert(int id, string name, int age, int purchased_value, string contact_number);
+    Node* insert(Node* node, int key, vector<pair<string, string>>&pairs);
+    void insert(int id, vector<pair<string, string>>&pairs);
     void printInOrder();
     void printInOrder(Node* node);
 };
