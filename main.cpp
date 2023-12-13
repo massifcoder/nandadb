@@ -6,7 +6,6 @@ using namespace std;
 
 int main()
 {
-
     bool passed_post = performPOST();
 
     if(!passed_post){

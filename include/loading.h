@@ -5,13 +5,10 @@
 #include <chrono>
 #include <curses.h>
 #include <filesystem>
-#include "json.hpp"
 #include "utility.h"
 
 using namespace std;
 namespace fs = std::filesystem;
-using json = nlohmann::json;
-
 
 struct Collection
 {
@@ -44,8 +41,6 @@ struct nandaDB{
 };
 
 extern struct nandaDB NandaDB;
-
-void POST();
 
 bool verify();
 

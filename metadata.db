@@ -9,6 +9,14 @@
                         "SST_LV_2"
                     ],
                     "name": "massif"
+                },
+                {
+                    "levels": [
+                        "memo",
+                        "SST_LV_1",
+                        "SST_LV_2"
+                    ],
+                    "name": "coder"
                 }
             ],
             "name": "massifcoder"

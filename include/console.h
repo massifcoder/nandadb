@@ -5,7 +5,6 @@
 #include <chrono>
 #include <curses.h>
 #include <filesystem>
-#include "json.hpp"
 #include "utility.h"
 #include "loading.h"
 #define username "vishal"

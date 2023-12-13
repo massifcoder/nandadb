@@ -2,21 +2,11 @@
 
 // Global variable.
 AVLTree avl;
-int MAX_NODE = 1023;
+int MAX_NODE = 262143;
 
 
 void printInOrder(){
     avl.printInOrder();
-}
-
-string serialize(Node* node){
-    string serialised = "id:";
-    serialised += to_string(node->id) + ",";
-    for(int i=0; i<node->pairs.size(); i++){
-        serialised += node->pairs[i].first + ":";
-        serialised += node->pairs[i].second + ",";
-    }
-    return serialised;
 }
 
 void create_index_tree(vector<pair<int,string>>&result){
@@ -31,9 +21,7 @@ void create_index_tree(vector<pair<int,string>>&result){
 
         Node* node = q.front();
         q.pop();
-        string serl = serialize(node);
-        cout<<"Size is :"<<serl.size()<<endl;
-        result.push_back({node->id ,serl});
+        result.push_back({node->id ,node->pairs});
         if(node->left != nullptr){
             q.push(node->left);
 
@@ -122,27 +110,6 @@ pair<long long, size_t> find_location_by_key(int search_key){
 
 }
 
-void deserialize(string serialised, Node& dataNode){
-    int i=0;
-    string key="";
-    string value="";
-    while(i<serialised.size()){
-        if(serialised[i] == ':'){
-            key = value;
-            value = "";
-        }
-        else if(serialised[i] == ','){
-            dataNode.pairs.push_back({key, value});
-            key = "";
-            value = "";
-        }
-        else{
-            value += serialised[i];
-        }
-        i++;
-    }
-}
-
 void read_data_from_location(long long location, size_t structSize){
     ifstream data_in("SST_LV_1/sst_1.lv_1");
 
@@ -155,19 +122,19 @@ void read_data_from_location(long long location, size_t structSize){
     if (!data_in.is_open()) {
         cout<<"Error"<<endl;
     }
-    char serialised[structSize];
-    cout<<structSize<<endl;
-    data_in.read((char*)&serialised, structSize);
-    cout<<"Serialed data is:";
-    cout<<serialised<<endl;
+    vector<char> serialised(structSize);
+    cout << structSize << endl;
+    data_in.read(serialised.data(), structSize);
+    cout << "Serialized data is:";
+    cout << serialised.data() << endl;
 
     Node dataNode;
-    deserialize(serialised, dataNode);
 
-    cout<<"Data is: "<<endl;
-    for(auto pair : dataNode.pairs){
-        cout<<pair.first<<" : "<<pair.second<<endl;
-    }
+    json j = json::parse(serialised.data(), serialised.data() + structSize);
+    
+    cout << j["id"] << endl;
+    cout << j["pairs"] << endl;
+    
 
     data_in.close();
 

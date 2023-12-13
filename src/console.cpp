@@ -22,7 +22,7 @@ bool verify_database_file(){
                 return false;
             }
             for(auto level : collection.levels){
-                string level_path = collection_path + "/" + level;
+                string level_path = collection_path + "/" + level + ".sst";
                 if(!fs::exists(level_path)){
                     return false;
                 }
@@ -72,7 +72,6 @@ bool performPOST(){
         cout<<"System Crashed, due to missing directory files!"<<endl;
         return false;
     }
-
 }
 
 bool verify()
@@ -137,6 +136,57 @@ void createFiles(const Collection& collection, string directory_path) {
     }
 }
 
+void insertValue(int id, string pairs){
+    bool isInserted = avl.insert(id, pairs);
+    if(isInserted == false){
+        cout<<"Such id is already present."<<endl;
+    }
+    else{
+    bloomFilter.insert(id);
+    cout<<"Inserted successfully."<<endl;
+    }
+}
+
+void deleteValue(int id){
+    string pairs = "";
+    avl.insert(id, pairs, true);
+    bloomFilter.insert(id);
+    cout<<"Deleted successfully."<<endl;
+}
+
+void updateValue(int id, string &pairs){
+    avl.insert(id, pairs);
+    bloomFilter.insert(id);
+    cout<<"Values updated successfully."<<endl;
+}
+
+Node* searchValue(int id){
+    if(bloomFilter.contains(id)){
+        Node* ans = avl.search(avl.root, id);
+        if(ans != nullptr){
+            if(ans->isDeleted == true){
+                return nullptr;
+            }
+            else{
+                return ans;
+            }
+        }
+    }
+    if(bloomFilter1.contains(id)){
+        // Search SST_LV_1 -> will do tomorrow.
+    }
+    if(bloomFilter2.contains(id)){
+        // Search SST_LV_2 -> for future work.
+    }
+    if(bloomFilter3.contains(id)){
+        // Search SST_LV_3 -> for future work.
+    }
+    if(bloomFilter4.contains(id)){
+        // Search SST_LV_4 -> for futur work.
+    }
+    return nullptr;
+}
+
 void insideCollection(string usermode, string collection_name){
     string query;
     while(1){
@@ -150,40 +200,105 @@ void insideCollection(string usermode, string collection_name){
             clearScreen();
         }
         else if (query.substr(0, 13) == "insert value "){
-            auto start = chrono::high_resolution_clock::now();
-            // Start code
-
-            // Code ends here and now vishal will analyze.
-            auto end = chrono::high_resolution_clock::now();
-            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
-            cout << "Duration: " << duration.count() << " microseconds" << endl;
+            try{
+                auto start = chrono::high_resolution_clock::now();
+                string bson = query.substr(13, query.size() - 13);
+                json j = json::parse(bson);
+                cout<<j<<endl;
+                int id = j["id"].get<int>();
+                string pairs = j["pairs"].dump();
+                if(!bloomFilter.contains(id) && !bloomFilter1.contains(id) && !bloomFilter2.contains(id) && !bloomFilter3.contains(id) && !bloomFilter4.contains(id)){
+                    insertValue(id, pairs);
+                }
+                else{
+                    Node*ans = searchValue(id);
+                    if(ans == nullptr){
+                        insertValue(id, pairs);
+                    }
+                    else{
+                        cout<<"Such id is already present."<<endl;
+                    }
+                }
+                auto end = chrono::high_resolution_clock::now();
+                auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+                cout << "Duration: " << duration.count() << " microseconds" << endl;
+            }
+            catch(const std::exception& e){
+                cout<<"Invalid bson format."<<endl;
+            }
         }
         else if (query.substr(0, 13) == "delete value "){
-            auto start = chrono::high_resolution_clock::now();
-            // Start code
-
-            // Code ends here and now vishal will analyze.
-            auto end = chrono::high_resolution_clock::now();
-            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
-            cout << "Duration: " << duration.count() << " microseconds" << endl;
+            try{
+                auto start = chrono::high_resolution_clock::now();
+                string json_string = query.substr(13, query.size() - 13);
+                json j = json::parse(json_string);
+                int id = j["id"].get<int>();
+                cout<<id<<endl;
+                bool isDeleted = avl.deleteNode(id);
+                if(isDeleted == false){
+                    deleteValue(id);
+                }
+                else{
+                    cout<<"Deleted successfully."<<endl;
+                }
+                auto end = chrono::high_resolution_clock::now();
+                auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+                cout << "Duration: " << duration.count() << " microseconds" << endl;
+            }
+            catch(const std::exception& e){
+                cout<<"Invalid bson format."<<endl;
+            }
+        }
+        else if(query.substr(0, 8) == "select *"){
+            try{
+                avl.printInOrder();
+            }
+            catch(const std::exception& e){
+                cout<<"Invalid format."<<endl;
+            }
         }
         else if(query.substr(0, 13) == "select value "){
-            auto start = chrono::high_resolution_clock::now();
-            // Start code
-
-            // Code ends here and now vishal will analyze.
-            auto end = chrono::high_resolution_clock::now();
-            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
-            cout << "Duration: " << duration.count() << " microseconds" << endl;
+            try{
+                auto start = chrono::high_resolution_clock::now();
+                string json_string = query.substr(13, query.size() - 13);
+                json j = json::parse(json_string);
+                int id = j["id"].get<int>();
+                Node* ans = avl.search(avl.root, id);
+                if(ans == nullptr){
+                    cout << "Such id is not present." << endl;
+                }
+                else{
+                    cout << "Found successfully. With id " << ans->id << " and bson of " << ans->pairs << endl;
+                }
+                auto end = chrono::high_resolution_clock::now();
+                auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+                cout << "Duration: " << duration.count() << " microseconds" << endl;
+            }
+            catch(const std::exception& e){
+                cout<<"Invalid bson format."<<endl;
+            }
         }
         else if(query.substr(0, 13) == "update value "){
-            auto start = chrono::high_resolution_clock::now();
-            // Start code
-
-            // Code ends here and now vishal will analyze.
-            auto end = chrono::high_resolution_clock::now();
-            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
-            cout << "Duration: " << duration.count() << " microseconds" << endl;
+            try{
+                auto start = chrono::high_resolution_clock::now();
+                string json_string = query.substr(13, query.size() - 13);
+                json j = json::parse(json_string);
+                int id = j["id"].get<int>();
+                string pairs = j["pairs"].dump();
+                Node* ans = avl.update(avl.root, id, pairs);
+                if(ans == nullptr){
+                    updateValue(id, pairs);
+                }
+                else{
+                    cout<<"Updated successfully. With id "<<ans->id<<" and bson of "<<ans->pairs<<endl;
+                }
+                auto end = chrono::high_resolution_clock::now();
+                auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+                cout << "Duration: " << duration.count() << " microseconds" << endl;
+            }
+            catch(const std::exception& e){
+                cout<<"Invalid bson format."<<endl;
+            }
         }
         else if(query.substr() == "exit collection"){
             cout << "\033[1;31mCollection closed successfully.\033[0m \n" << endl;

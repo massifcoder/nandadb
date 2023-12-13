@@ -5,6 +5,7 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "ostream": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "tuple": "cpp"
     }
 }
