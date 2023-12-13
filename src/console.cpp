@@ -137,6 +137,62 @@ void createFiles(const Collection& collection, string directory_path) {
     }
 }
 
+void insideCollection(string usermode, string collection_name){
+    string query;
+    while(1){
+        cout << "\033[0;32m" << usermode << " : " << collection_name << " :~ \033[1;34m";
+        getline(cin, query);
+        cout << "\033[0m";
+        if (query == "--help"){
+            help();
+        }
+        else if (query == "clear"){
+            clearScreen();
+        }
+        else if (query.substr(0, 13) == "insert value "){
+            auto start = chrono::high_resolution_clock::now();
+            // Start code
+
+            // Code ends here and now vishal will analyze.
+            auto end = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+            cout << "Duration: " << duration.count() << " microseconds" << endl;
+        }
+        else if (query.substr(0, 13) == "delete value "){
+            auto start = chrono::high_resolution_clock::now();
+            // Start code
+
+            // Code ends here and now vishal will analyze.
+            auto end = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+            cout << "Duration: " << duration.count() << " microseconds" << endl;
+        }
+        else if(query.substr(0, 13) == "select value "){
+            auto start = chrono::high_resolution_clock::now();
+            // Start code
+
+            // Code ends here and now vishal will analyze.
+            auto end = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+            cout << "Duration: " << duration.count() << " microseconds" << endl;
+        }
+        else if(query.substr(0, 13) == "update value "){
+            auto start = chrono::high_resolution_clock::now();
+            // Start code
+
+            // Code ends here and now vishal will analyze.
+            auto end = chrono::high_resolution_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+            cout << "Duration: " << duration.count() << " microseconds" << endl;
+        }
+        else if(query.substr() == "exit collection"){
+            cout << "\033[1;31mCollection closed successfully.\033[0m \n" << endl;
+            cout << endl;
+            return;
+        }
+    }
+}
+
 void Console(){
     bool login = verify();
     if (!login)
@@ -168,6 +224,28 @@ void Console(){
                 cout << " > " << database.first << endl;
             }
             cout << endl;
+        }
+        else if(query.substr(0, 15) == "use collection "){
+            string collection_name = query.substr(15, query.size() - 15);
+            if (usermode == NandaDB.name){
+                cout << "\033[1:31mSelect a database where you want to work. \033[0m \n" << endl;
+            }
+            else{
+                bool isFound = false;
+                for(auto collection : NandaDB.Databases[usermode].collections){
+                    if(collection.name == collection_name){
+                        isFound = true;
+                        cout << "\033[1;31mCollection selected successfully.\033[0m \n" << endl;
+                        break;
+                    }
+                }
+                if(isFound == false){
+                    cout << "\033[1;31mNo such collection present.\033[0m" << endl;
+                }
+                else{
+                    insideCollection(usermode, collection_name);
+                }
+            }
         }
         else if (query.substr(0, 4) == "use ")
         {

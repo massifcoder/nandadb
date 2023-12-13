@@ -8,6 +8,19 @@
                         "SST_LV_1",
                         "SST_LV_2"
                     ],
+                    "name": "massif"
+                }
+            ],
+            "name": "massifcoder"
+        },
+        {
+            "collections": [
+                {
+                    "levels": [
+                        "memo",
+                        "SST_LV_1",
+                        "SST_LV_2"
+                    ],
                     "name": "system_in"
                 },
                 {
