@@ -152,11 +152,6 @@ Node *AVLTree::search(Node *node, int key)
 
 Node *AVLTree::insert(Node *node, int key, string &pairs, bool &isInserted, bool isDeleted)
 {
-    if(number_of_nodes == 3){
-        flush_to_sst();
-        number_of_nodes = 1;
-        return new Node(key, pairs, isDeleted);
-    }
     if (!node){
         isInserted = true;
         number_of_nodes++;
@@ -200,10 +195,18 @@ Node *AVLTree::insert(Node *node, int key, string &pairs, bool &isInserted, bool
     return node;
 }
 
-bool AVLTree::insert(int id, string &pairs, bool isDeleted){
+bool AVLTree::insert(string file_name, string index_file_name ,int id, string &pairs, bool isDeleted){
     bool isInserted = false;
-    root = insert(root, id, pairs, isInserted, isDeleted);
-    return isInserted;
+    if(number_of_nodes == 3){
+        flush_to_sst(file_name, index_file_name);
+        number_of_nodes = 1;
+        root = new Node(id, pairs, isDeleted);
+        return true;
+    }
+    else{
+        root = insert(root, id, pairs, isInserted, isDeleted);
+        return isInserted;
+    }
 }
 
 void AVLTree::printInOrder(Node *node){
@@ -261,7 +264,12 @@ void AVLTree::create_index_tree(vector<pair<int, string>>&result){
 
         Node* node = q.front();
         q.pop();
-        result.push_back({node->id ,node->pairs});
+        if(node->isDeleted == false){
+            result.push_back({node->id ,node->pairs});
+        }
+        else{
+            result.push_back({node->id, ""});
+        }
         if(node->left != nullptr){
             q.push(node->left);
 
@@ -276,14 +284,14 @@ void AVLTree::create_index_tree(vector<pair<int, string>>&result){
     }
 }
 
-void AVLTree::write_index_tree(vector<pair<int,string>>&result){
+void AVLTree::write_index_tree(vector<pair<int,string>>&result, string file_name, string index_file_name){
     create_index_tree(result);
-    write_to_sst(result, "SST_LV_1.sst", "SST_LV_1.index");
+    write_to_sst(result, file_name, index_file_name);
 }
 
-void AVLTree::flush_to_sst(){
+void AVLTree::flush_to_sst(string file_name, string index_file_name){
     vector<pair<int,string>> result;
-    write_index_tree(result);
+    write_index_tree(result, file_name, index_file_name);
     this->root = nullptr;
     this->number_of_nodes = 0;
     cout<<"Number of nodes are: "<<number_of_nodes<<endl;

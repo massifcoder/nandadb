@@ -26,8 +26,6 @@ Collection::Collection(string name, vector<Level> levels)
     this->levels = levels;
 }
 
-Level::Level() = default;
-
 Level::Level(string name, int numbers)
 {
     this->name = name;

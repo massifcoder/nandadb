@@ -48,14 +48,14 @@ bool performPOST(){
     json j;
     i>>j;
     i.close();
-
+    cout<<"Loaded json file."<<endl;
     NandaDB.name = j["name"];
     for(auto db : j["databasses"]){
         Db temp(db["name"]);
         for(auto collection : db["collections"]){
             vector<Level> levels;
             for(auto level : collection["levels"]){
-                Level temp1(level["name"], level["numbers"]);
+                Level temp1(level["name"], level["number"]);
                 levels.push_back(temp1);
             }
             Collection temp2(collection["name"], levels);
@@ -145,8 +145,34 @@ void createFiles(const Collection& collection, string directory_path) {
     }
 }
 
-void insertValue(int id, string pairs, AVLTree &avl){
-    bool isInserted = avl.insert(id, pairs);
+pair<string, string> getFileName(string usermode, string collection_name, int id){
+    vector<Level> levels = NandaDB.Databases[usermode].collections[collection_name].levels;
+    for(auto level : levels){
+        if(level.numbers == 0){
+            string file_name = level.name + ".sst";
+            string index_name = level.name + ".idx";
+            NandaDB.Databases[usermode].collections[collection_name].levels[0].numbers++;
+            saveMetadata();
+            return {file_name, index_name};
+        }
+    }
+    int next = levels.size() + 1;
+    NandaDB.Databases[usermode].collections[collection_name].levels.push_back(Level({"SST_LV_" + to_string(next), 1}));
+    saveMetadata();
+    return {"SST_LV_" + to_string(next) + ".sst", "SST_LV_" + to_string(next) +".idx"};
+}
+
+void insertValue(int id, string pairs, AVLTree &avl, string usermode, string collection_name){
+    string file_name = "";
+    string index_file_name = "";
+    if(avl.number_of_nodes == 3){
+        vector<Level> levels = NandaDB.Databases[usermode].collections[collection_name].levels;
+        pair<string, string> file_name_pair = getFileName(usermode, collection_name, id);
+        file_name = file_name_pair.first;
+        index_file_name = file_name_pair.second;
+    }
+    string base_path = string(fs::current_path()) + "/database/" + usermode + "/" + collection_name + "/";
+    bool isInserted = avl.insert(base_path + file_name, base_path + index_file_name, id, pairs);
     cout<<"Inside insert"<<endl;
     if(isInserted == false){
         cout<<"Such id is already present."<<endl;
@@ -157,20 +183,116 @@ void insertValue(int id, string pairs, AVLTree &avl){
     }
 }
 
-void deleteValue(int id, AVLTree &avl){
+void deleteValue(int id, AVLTree &avl, string usermode, string collection_name){
     string pairs = "";
-    avl.insert(id, pairs, true);
+    string file_name = "";
+    string index_file_name = "";
+    if(avl.number_of_nodes == 3){
+        vector<Level> levels = NandaDB.Databases[usermode].collections[collection_name].levels;
+        pair<string, string> file_name_pair = getFileName(usermode, collection_name, id);
+        file_name = file_name_pair.first;
+        index_file_name = file_name_pair.second;
+    }
+    string base_path = string(fs::current_path()) + "/database/" + usermode + "/" + collection_name + "/";
+    avl.insert(base_path + file_name, base_path + index_file_name, id, pairs, true);
     avl.bitMap.set(id%10000);
     cout<<"Deleted successfully."<<endl;
 }
 
-void updateValue(int id, string &pairs, AVLTree &avl){
-    avl.insert(id, pairs);
+void updateValue(int id, string &pairs, AVLTree &avl, string usermode, string collection_name){
+    string file_name = "";
+    string index_file_name = "";
+    if(avl.number_of_nodes == 3){
+        pair<string, string> file_name_pair = getFileName(usermode, collection_name, id);
+        file_name = file_name_pair.first;
+        index_file_name = file_name_pair.second;
+    }
+    string base_path = string(fs::current_path()) + "/database/" + usermode + "/" + collection_name + "/";
+    avl.insert(base_path + file_name, base_path + index_file_name, id, pairs);
     avl.bitMap.set(id%10000);
     cout<<"Values updated successfully."<<endl;
 }
 
-Node* searchValue(int id, AVLTree &avl){
+void read_data_from_location(long long location, size_t structSize, string file_name){
+    ifstream data_in(file_name, ios::binary);
+
+    if(!data_in.is_open()){
+        cout<<"Error in opening SST file. Check file location and error log file."<<endl;
+        return ;
+    }
+
+    data_in.seekg(location);
+    if (!data_in.is_open()) {
+        cout<<"Error"<<endl;
+    }
+    vector<char> serialised(structSize);
+    data_in.read(serialised.data(), structSize);
+    if(serialised.size()==0){
+        cout<<"Id is deleted!"<<endl;
+        return;
+    }
+    cout << "Serialized data is:";
+    cout << serialised.data() << endl;
+
+    Node dataNode;
+
+    json j = json::parse(serialised.data(), serialised.data() + structSize);
+    
+    cout << j["id"] << endl;
+    cout << j["pairs"] << endl;
+    
+
+    data_in.close();
+
+}
+
+pair<long long, size_t> find_location_by_key(int id, string index_file_name){
+    ifstream index_in(index_file_name , ios::binary);
+
+    if(!index_in.is_open()){
+        cout<<"Error in opening index file."<<endl;
+        return {-1,-1};
+    }
+
+    IndexNode indexNode;
+    long long current_position = 0;
+
+    while(index_in.read((char*)&indexNode, sizeof(indexNode))){
+        int val = indexNode.id;
+        if(indexNode.id == id){
+            index_in.close();
+            return {indexNode.location, indexNode.structSize};
+        }
+        else if(indexNode.id > id){
+            current_position = 2 * current_position + 1;
+        }
+        else{
+            current_position = 2 * current_position + 2;
+        }
+
+        index_in.seekg(current_position * sizeof(indexNode), ios::beg);
+    
+    }
+
+    index_in.close();
+    return {-1, -1};
+
+}
+
+bool load_from_sst(int id, string file_name, string index_file_name){
+    pair<long long, size_t> info = find_location_by_key(id, index_file_name);
+    if(info.first != -1){
+        cout<<"Struct is at location: "<<info.first<<endl;
+        read_data_from_location(info.first, info.second, file_name);
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+Node* searchValue(int id, AVLTree &avl, string usermode, string collection_name){
+    int number_of_levels = NandaDB.Databases[usermode].collections[collection_name].levels.size();
     if(avl.bitMap.test(id%10000)){
        Node* ans = avl.search(avl.root, id);
        if(ans != nullptr){
@@ -182,18 +304,16 @@ Node* searchValue(int id, AVLTree &avl){
             }
        } 
     }
-    // if(sst1.bitMap.test(id%10000)){
-        // Search SST_LV_1 -> will do tomorrow.
-    // }
-    // if(sst2.bitMap.test(id%10000)){
-        // Search SST_LV_2 -> for future work.
-    // }
-    // if(sst3.bitMap.test(id%10000)){
-        // Search SST_LV_3 -> for future work.
-    // }
-    // if(sst4.bitMap.test(id%10000)){
-        // Search SST_LV_4 -> for futur work.
-    // }
+    else{
+        string base_path = string(fs::current_path()) + "/database/" + usermode + "/" + collection_name + "/";
+        for(int i = 0; i < number_of_levels; i++){
+            string file_name = NandaDB.Databases[usermode].collections[collection_name].levels[i].name + ".sst";
+            string index_file_name = NandaDB.Databases[usermode].collections[collection_name].levels[i].name + ".idx";
+            if(load_from_sst(id, base_path + file_name, base_path + index_file_name)){
+                return avl.root;
+            }
+        }
+    }
     return nullptr;
 }
 
@@ -218,13 +338,14 @@ void insideCollection(string usermode, string collection_name){
                 int id = j["id"].get<int>();
                 string pairs = j["pairs"].dump();
                 cout<<id<<" "<<pairs<<endl;
-                if(!avl.bitMap.test(id%10000)){//} && !sst1.bitMap.test(id%10000) && !sst2.bitMap.test(id%10000 && !sst3.bitMap.test(id%10000)) && !sst4.bitMap.test(id%10000)){
-                    insertValue(id, pairs, avl);
+                
+                if(!avl.bitMap.test(id%10000)){
+                    insertValue(id, pairs, avl, usermode, collection_name);
                 }
                 else{
-                    Node*ans = searchValue(id, avl);
+                    Node*ans = searchValue(id, avl, usermode, collection_name);
                     if(ans == nullptr){
-                        insertValue(id, pairs, avl);
+                        insertValue(id, pairs, avl, usermode, collection_name);
                     }
                     else{
                         cout<<"Such id is already present."<<endl;
@@ -247,7 +368,7 @@ void insideCollection(string usermode, string collection_name){
                 cout<<id<<endl;
                 bool isDeleted = avl.deleteNode(id);
                 if(isDeleted == false){
-                    deleteValue(id, avl);
+                    deleteValue(id, avl, usermode, collection_name);
                 }
                 else{
                     cout<<"Deleted successfully."<<endl;
@@ -274,7 +395,7 @@ void insideCollection(string usermode, string collection_name){
                 string json_string = query.substr(13, query.size() - 13);
                 json j = json::parse(json_string);
                 int id = j["id"].get<int>();
-                Node* ans = searchValue(id, avl);
+                Node* ans = searchValue(id, avl, usermode, collection_name);
                 if(ans == nullptr){
                     cout<<"No such id present."<<endl;
                 }
@@ -298,7 +419,7 @@ void insideCollection(string usermode, string collection_name){
                 string pairs = j["pairs"].dump();
                 Node* ans = avl.update(avl.root, id, pairs);
                 if(ans == nullptr){
-                    updateValue(id, pairs, avl);
+                    updateValue(id, pairs, avl, usermode, collection_name);
                 }
                 else{
                     cout<<"Updated successfully. With id "<<ans->id<<" and bson of "<<ans->pairs<<endl;
@@ -387,16 +508,6 @@ void Console(){
                 usermode = database;
                 cout << endl;
             }
-        }
-        else if (query.substr(0,7) == "insert ")
-        {
-            auto start = chrono::high_resolution_clock::now();
-            // Start code
-
-            // Code ends here and now vishal will analyze.
-            auto end = chrono::high_resolution_clock::now();
-            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
-            cout << "Duration: " << duration.count() << " microseconds" << endl;
         }
         else if (query == "show collections")
         {

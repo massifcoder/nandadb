@@ -41,15 +41,14 @@ public:
     Node* rotateRight(Node* node);
     Node* rotateLeft(Node* node);
     Node* insert(Node* node, int key, string &pairs, bool &isInserted, bool isDeleted=false);
-    bool insert(int id, string &pairs, bool isDeleted=false);
+    bool insert(string file_name, string index_file_name, int id, string &pairs, bool isDeleted=false);
     bool deleteNode(int id);
     void printInOrder();
     void printInOrder(Node* node);
     void write_to_sst(vector<pair<int,string>>&result, string file_name, string index_file_name);
     void create_index_tree(vector<pair<int,string>>&result);
-    void write_index_tree(vector<pair<int,string>>&result);
-    void flush_to_sst();
+    void write_index_tree(vector<pair<int,string>>&result, string file_name, string index_file_name);
+    void flush_to_sst(string file_name, string index_file_name);
 };
-
 
 #endif
