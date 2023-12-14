@@ -10,13 +10,20 @@
 using namespace std;
 namespace fs = std::filesystem;
 
+struct Level{
+    string name;
+    int numbers;
+    Level() = default;
+    Level(string name, int numbers);
+};
+
 struct Collection
 {
     string name;
-    vector<string> levels;
+    vector<Level> levels;
     AVLTree avl;
     Collection() = default;
-    Collection(string name, vector<string> levels);
+    Collection(string name, vector<Level> levels);
 
     bool operator==(const Collection &c);
 };

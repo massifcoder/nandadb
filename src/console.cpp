@@ -22,7 +22,8 @@ bool verify_database_file(){
                 return false;
             }
             for(auto level : collection.second.levels){
-                string level_path = collection_path + "/" + level + ".sst";
+                string level_path = collection_path + "/" + level.name + ".sst";
+                string index_path = collection_path + "/" + level.name + ".idx";
                 if(!fs::exists(level_path)){
                     return false;
                 }
@@ -52,7 +53,12 @@ bool performPOST(){
     for(auto db : j["databasses"]){
         Db temp(db["name"]);
         for(auto collection : db["collections"]){
-            Collection temp2(collection["name"], collection["levels"]);
+            vector<Level> levels;
+            for(auto level : collection["levels"]){
+                Level temp1(level["name"], level["numbers"]);
+                levels.push_back(temp1);
+            }
+            Collection temp2(collection["name"], levels);
             temp.collections[collection["name"]] = temp2;
         }
         NandaDB.Databases[db["name"]] = temp;
@@ -110,7 +116,12 @@ json convertToJSON(const nandaDB& NandaDB){
         for(const auto& collection : database.second.collections){
             json collectionJson;
             collectionJson["name"] = collection.second.name;
-            collectionJson["levels"] = collection.second.levels;
+            for(const auto& level : collection.second.levels){
+                json levelJson;
+                levelJson["name"] = level.name;
+                levelJson["number"] = level.numbers;
+                collectionJson["levels"].push_back(levelJson);
+            }
             dbJson["collections"].push_back(collectionJson);
         }
         j["databasses"].push_back(dbJson);
@@ -127,8 +138,10 @@ void saveMetadata() {
 
 void createFiles(const Collection& collection, string directory_path) {
     for (const auto& level : collection.levels) {
-        std::ofstream file(directory_path + "/" + level + ".sst");
+        std::ofstream file(directory_path + "/" + level.name + ".sst");
         file.close();
+        std::ofstream index_file(directory_path + "/" + level.name + ".idx");
+        index_file.close();
     }
 }
 
@@ -452,7 +465,13 @@ void Console(){
                     fs::path base_path = fs::current_path();
                     string directory_path = string(base_path) + "/database/" + usermode + "/" + collection_name;
                     fs::create_directory(directory_path);
-                    Collection to_ad = Collection(collection_name, {"memo", "SST_LV_1", "SST_LV_2", "SST_LV_3", "SST_LV_4"});
+                    vector<Level> levels{
+                        Level({"SST_LV_1", 0}),
+                        Level({"SST_LV_2", 0}),
+                        Level({"SST_LV_3", 0}),
+                        Level({"SST_LV_4", 0})
+                    };
+                    Collection to_ad = Collection(collection_name, levels );
                     NandaDB.Databases[usermode].collections[collection_name] = to_ad;
                     createFiles(to_ad, directory_path);
                     saveMetadata();

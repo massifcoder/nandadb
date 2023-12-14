@@ -154,7 +154,7 @@ Node *AVLTree::insert(Node *node, int key, string &pairs, bool &isInserted, bool
 {
     if(number_of_nodes == 3){
         flush_to_sst();
-        number_of_nodes = 0;
+        number_of_nodes = 1;
         return new Node(key, pairs, isDeleted);
     }
     if (!node){

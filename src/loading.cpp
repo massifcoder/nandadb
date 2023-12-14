@@ -20,8 +20,16 @@ bool Collection::operator==(const Collection &c)
     return false;
 }
 
-Collection::Collection(string name, vector<string> levels)
+Collection::Collection(string name, vector<Level> levels)
 {
     this->name = name;
     this->levels = levels;
+}
+
+Level::Level() = default;
+
+Level::Level(string name, int numbers)
+{
+    this->name = name;
+    this->numbers = numbers;
 }

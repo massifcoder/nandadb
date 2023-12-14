@@ -1,33 +1,6 @@
 {
     "databasses": [
-        {
-            "name": "system"
-        },
-        {
-            "collections": [
-                {
-                    "levels": [
-                        "memo",
-                        "SST_LV_1",
-                        "SST_LV_2",
-                        "SST_LV_3",
-                        "SST_LV_4"
-                    ],
-                    "name": "coder"
-                },
-                {
-                    "levels": [
-                        "memo",
-                        "SST_LV_1",
-                        "SST_LV_2",
-                        "SST_LV_3",
-                        "SST_LV_4"
-                    ],
-                    "name": "massif"
-                }
-            ],
-            "name": "massifcoder"
-        }
+        
     ],
     "name": "NandaDB"
 }
