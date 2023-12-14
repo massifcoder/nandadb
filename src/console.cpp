@@ -1,5 +1,7 @@
 #include "console.h"
 
+Node* temp_addr = new Node();
+
 void clearScreen()
 {
     cout << "\033[2J\033[H";
@@ -213,12 +215,12 @@ void updateValue(int id, string &pairs, AVLTree &avl, string usermode, string co
     cout<<"Values updated successfully."<<endl;
 }
 
-void read_data_from_location(long long location, size_t structSize, string file_name){
+bool read_data_from_location(long long location, size_t structSize, string file_name, bool isPrint){
     ifstream data_in(file_name, ios::binary);
 
     if(!data_in.is_open()){
         cout<<"Error in opening SST file. Check file location and error log file."<<endl;
-        return ;
+        return false;
     }
 
     data_in.seekg(location);
@@ -228,22 +230,16 @@ void read_data_from_location(long long location, size_t structSize, string file_
     vector<char> serialised(structSize);
     data_in.read(serialised.data(), structSize);
     if(serialised.size()==0){
-        cout<<"Id is deleted!"<<endl;
-        return;
+        if(isPrint){
+            cout<<"Id is not present."<<endl;
+        }
+        return false;
     }
-    cout << "Serialized data is:";
-    cout << serialised.data() << endl;
-
-    Node dataNode;
-
-    json j = json::parse(serialised.data(), serialised.data() + structSize);
-    
-    cout << j["id"] << endl;
-    cout << j["pairs"] << endl;
-    
-
-    data_in.close();
-
+    if(isPrint){
+        cout<<"For this id data is: ";
+        cout<<serialised.data()<<endl;
+    }
+    return true;
 }
 
 pair<long long, size_t> find_location_by_key(int id, string index_file_name){
@@ -279,28 +275,33 @@ pair<long long, size_t> find_location_by_key(int id, string index_file_name){
 
 }
 
-bool load_from_sst(int id, string file_name, string index_file_name){
+bool load_from_sst(int id, string file_name, string index_file_name, bool isPrint){
     pair<long long, size_t> info = find_location_by_key(id, index_file_name);
     if(info.first != -1){
-        cout<<"Struct is at location: "<<info.first<<endl;
-        read_data_from_location(info.first, info.second, file_name);
-        return true;
+        return read_data_from_location(info.first, info.second, file_name, isPrint); 
     }
     else{
         return false;
     }
 }
 
-Node* searchValue(int id, AVLTree &avl, string usermode, string collection_name){
+bool searchValue(int id, AVLTree &avl, string usermode, string collection_name, bool isPrint){
     int number_of_levels = NandaDB.Databases[usermode].collections[collection_name].levels.size();
     if(avl.bitMap.test(id%10000)){
        Node* ans = avl.search(avl.root, id);
        if(ans != nullptr){
             if(ans->isDeleted == true){
-                return nullptr;
+                if(isPrint){
+                    cout<<"Id is deleted!"<<endl;
+                }
+                return false;
             }
             else{
-                return ans;
+                if(isPrint){
+                    cout<<"For this id data is: ";
+                    cout<<ans->pairs<<endl;
+                }
+                return true;
             }
        } 
     }
@@ -309,12 +310,15 @@ Node* searchValue(int id, AVLTree &avl, string usermode, string collection_name)
         for(int i = 0; i < number_of_levels; i++){
             string file_name = NandaDB.Databases[usermode].collections[collection_name].levels[i].name + ".sst";
             string index_file_name = NandaDB.Databases[usermode].collections[collection_name].levels[i].name + ".idx";
-            if(load_from_sst(id, base_path + file_name, base_path + index_file_name)){
-                return avl.root;
+            if(load_from_sst(id, base_path + file_name, base_path + index_file_name, isPrint)){
+                return true;
             }
         }
     }
-    return nullptr;
+    if(isPrint){
+        cout<<"Id is not present."<<endl;
+    }
+    return false;
 }
 
 void insideCollection(string usermode, string collection_name){
@@ -343,8 +347,8 @@ void insideCollection(string usermode, string collection_name){
                     insertValue(id, pairs, avl, usermode, collection_name);
                 }
                 else{
-                    Node*ans = searchValue(id, avl, usermode, collection_name);
-                    if(ans == nullptr){
+                    bool ans = searchValue(id, avl, usermode, collection_name, false);
+                    if(ans == false){
                         insertValue(id, pairs, avl, usermode, collection_name);
                     }
                     else{
@@ -395,13 +399,7 @@ void insideCollection(string usermode, string collection_name){
                 string json_string = query.substr(13, query.size() - 13);
                 json j = json::parse(json_string);
                 int id = j["id"].get<int>();
-                Node* ans = searchValue(id, avl, usermode, collection_name);
-                if(ans == nullptr){
-                    cout<<"No such id present."<<endl;
-                }
-                else{
-                    cout<<"Id: "<<ans->id<<" and bson: "<<ans->pairs<<endl;
-                }
+                searchValue(id, avl, usermode, collection_name, true);
                 auto end = chrono::high_resolution_clock::now();
                 auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
                 cout << "Duration: " << duration.count() << " microseconds" << endl;

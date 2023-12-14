@@ -30,8 +30,8 @@ struct Node {
 
 class AVLTree {
 public:
-    Node* root;
-    bitset<10000> bitMap{0};
+    Node* root=nullptr;
+    bitset<10000> bitMap;
     size_t number_of_nodes=0;
     int getHeight(Node* node);
     int getBalanceFactor(Node* node);
