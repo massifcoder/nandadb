@@ -1,5 +1,4 @@
 #include "memotable.h"
-#include "MurmurHash3.h"
 
 IndexNode::IndexNode(int _id, long long _location, size_t _structSize) : id(_id), location(_location), structSize(_structSize) {}
 
@@ -50,6 +49,7 @@ Node *AVLTree::update(Node *node, int key, string &pairs)
 {
     if (node == nullptr)
     {
+        number_of_nodes++;
         return new Node(key, pairs, false);
     }
     else if (node->id < key)
@@ -62,7 +62,12 @@ Node *AVLTree::update(Node *node, int key, string &pairs)
     }
     else
     {
-        node->pairs = pairs;
+        if(node->isDeleted == false){
+            node->pairs = pairs;
+        }
+        else{
+            return nullptr;
+        }
     }
     return node;
 }
@@ -87,6 +92,7 @@ Node *AVLTree::deleteNode(Node *node, int key, bool &isDeleted)
         if (node->left == nullptr && node->right == nullptr)
         {
             delete node;
+            number_of_nodes--;
             isDeleted = true;
             return nullptr;
         }
@@ -94,6 +100,7 @@ Node *AVLTree::deleteNode(Node *node, int key, bool &isDeleted)
         {
             Node *temp = node->right;
             delete node;
+            number_of_nodes--;
             isDeleted = true;
             return temp;
         }
@@ -102,6 +109,7 @@ Node *AVLTree::deleteNode(Node *node, int key, bool &isDeleted)
             Node *temp = node->left;
             isDeleted = true;
             delete node;
+            number_of_nodes--;
             return temp;
         }
         else
@@ -144,8 +152,14 @@ Node *AVLTree::search(Node *node, int key)
 
 Node *AVLTree::insert(Node *node, int key, string &pairs, bool &isInserted, bool isDeleted)
 {
+    if(number_of_nodes == 3){
+        flush_to_sst();
+        number_of_nodes = 0;
+        return new Node(key, pairs, isDeleted);
+    }
     if (!node){
         isInserted = true;
+        number_of_nodes++;
         return new Node(key, pairs, isDeleted);
     }
 
@@ -156,8 +170,16 @@ Node *AVLTree::insert(Node *node, int key, string &pairs, bool &isInserted, bool
         node->right = insert(node->right, key, pairs, isInserted);
     }
     else{
-        isInserted = false;
-        return node;
+        if(node->isDeleted == true){
+            node->isDeleted = false;
+            node->pairs = pairs;
+            isInserted = true;
+            return node;
+        }
+        else{
+            isInserted = false;
+            return node;
+        }
     }
 
     node->height = 1 + max(getHeight(node->left), getHeight(node->right));
@@ -194,29 +216,76 @@ void AVLTree::printInOrder(Node *node){
 }
 
 void AVLTree::printInOrder(){
+    if(this){
+        cout<<"Number of nodes in the tree are "<<number_of_nodes<<endl;
+    }
+    else{
+        cout<<"Tree is empty"<<endl;
+    }
+
     printInOrder(this->root);
 }
 
+void AVLTree::write_to_sst(vector<pair<int, string>>&result, string file_name, string index_file_name){
+    ofstream data_out(file_name, ios::binary);
+    ofstream index_out(index_file_name, ios::binary);
 
-size_t BloomFilter::hash1(int num) {
-    uint32_t result;
-    MurmurHash3_x86_32(&num, sizeof(int), 0, &result);
-    return result % filter.size();
+    if(!data_out.is_open() || !index_out.is_open()){
+        cout<<"Error in opening SST file. Check file location and error log file."<<endl;
+        return ;
+    }
+
+    for(auto &node : result){
+        int size = node.second.size() + 1;
+        char data[size];
+        strcpy(data, node.second.c_str());
+        data[size] = '\0';
+        long long location = data_out.tellp();
+        data_out.write((char*)(&data), size);
+        long long endLocation = data_out.tellp();
+        IndexNode indexNode(node.first, location, size_t(endLocation = location));
+        index_out.write((char*)&indexNode, sizeof(indexNode));
+    }
+    data_out.close();
+    index_out.close();
 }
 
+void AVLTree::create_index_tree(vector<pair<int, string>>&result){ 
+    if(root == nullptr){
+        return;
+    }
 
-size_t BloomFilter::hash2(int num) {
-    uint32_t result;
-    MurmurHash3_x86_32(&num, sizeof(int), 1, &result);
-    return result % filter.size();
+    queue<Node*> q;
+    q.push(root);
+    while(!q.empty()){
+
+        Node* node = q.front();
+        q.pop();
+        result.push_back({node->id ,node->pairs});
+        if(node->left != nullptr){
+            q.push(node->left);
+
+        }
+
+        if(node->right != nullptr){
+            q.push(node->right);
+        }
+
+        delete(node);
+
+    }
 }
 
-
-void BloomFilter::insert(int id){
-    filter[hash1(id)] = 1;
-    filter[hash2(id)] = 1;
+void AVLTree::write_index_tree(vector<pair<int,string>>&result){
+    create_index_tree(result);
+    write_to_sst(result, "SST_LV_1.sst", "SST_LV_1.index");
 }
 
-bool BloomFilter::contains(int id){
-    return filter[hash1(id)] && filter[hash2(id)];
+void AVLTree::flush_to_sst(){
+    vector<pair<int,string>> result;
+    write_index_tree(result);
+    this->root = nullptr;
+    this->number_of_nodes = 0;
+    cout<<"Number of nodes are: "<<number_of_nodes<<endl;
+    cout<<"Data flushed out!"<<endl;
 }

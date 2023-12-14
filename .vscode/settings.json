@@ -6,6 +6,8 @@
         "typeinfo": "cpp",
         "ostream": "cpp",
         "chrono": "cpp",
-        "tuple": "cpp"
+        "tuple": "cpp",
+        "bitset": "cpp",
+        "string_view": "cpp"
     }
 }

@@ -14,6 +14,7 @@ struct Collection
 {
     string name;
     vector<string> levels;
+    AVLTree avl;
     Collection() = default;
     Collection(string name, vector<string> levels);
 
@@ -23,7 +24,7 @@ struct Collection
 struct Db
 {
     string name;
-    vector<Collection> collections;
+    unordered_map<string, Collection> collections;
 
     Db() = default;
     Db(string name);

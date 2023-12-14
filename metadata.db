@@ -1,25 +1,7 @@
 {
-    "databases": [
+    "databasses": [
         {
-            "collections": [
-                {
-                    "levels": [
-                        "memo",
-                        "SST_LV_1",
-                        "SST_LV_2"
-                    ],
-                    "name": "massif"
-                },
-                {
-                    "levels": [
-                        "memo",
-                        "SST_LV_1",
-                        "SST_LV_2"
-                    ],
-                    "name": "coder"
-                }
-            ],
-            "name": "massifcoder"
+            "name": "system"
         },
         {
             "collections": [
@@ -27,20 +9,24 @@
                     "levels": [
                         "memo",
                         "SST_LV_1",
-                        "SST_LV_2"
+                        "SST_LV_2",
+                        "SST_LV_3",
+                        "SST_LV_4"
                     ],
-                    "name": "system_in"
+                    "name": "coder"
                 },
                 {
                     "levels": [
                         "memo",
                         "SST_LV_1",
-                        "SST_LV_2"
+                        "SST_LV_2",
+                        "SST_LV_3",
+                        "SST_LV_4"
                     ],
-                    "name": "system_out"
+                    "name": "massif"
                 }
             ],
-            "name": "system"
+            "name": "massifcoder"
         }
     ],
     "name": "NandaDB"

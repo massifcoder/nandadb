@@ -16,12 +16,12 @@ bool verify_database_file(){
         if(!fs::exists(database_path)){
             return false;
         }
-        for(auto collection : database.second.collections){
-            string collection_path = database_path + "/" + collection.name;
+        for (auto collection :database.second.collections){
+            string collection_path = database_path + "/" + collection.second.name;
             if(!fs::exists(collection_path)){
                 return false;
             }
-            for(auto level : collection.levels){
+            for(auto level : collection.second.levels){
                 string level_path = collection_path + "/" + level + ".sst";
                 if(!fs::exists(level_path)){
                     return false;
@@ -49,15 +49,14 @@ bool performPOST(){
     i.close();
 
     NandaDB.name = j["name"];
-    for(auto db : j["databases"]){
+    for(auto db : j["databasses"]){
         Db temp(db["name"]);
         for(auto collection : db["collections"]){
             Collection temp2(collection["name"], collection["levels"]);
-            temp.collections.push_back(temp2);
+            temp.collections[collection["name"]] = temp2;
         }
-        NandaDB.Databases[temp.name] = temp;
+        NandaDB.Databases[db["name"]] = temp;
     }
-
     bool passed_post = verify_database_file();
 
     if(passed_post){
@@ -101,24 +100,21 @@ void help()
          << endl;
 }
 
-json convertToJSON(const nandaDB& NandaDB) {
+
+json convertToJSON(const nandaDB& NandaDB){
     json j;
     j["name"] = NandaDB.name;
-
-    for (const auto& database : NandaDB.Databases) {
+    for(const auto& database : NandaDB.Databases){
         json dbJson;
         dbJson["name"] = database.second.name;
-
-        for (const auto& collection : database.second.collections) {
+        for(const auto& collection : database.second.collections){
             json collectionJson;
-            collectionJson["name"] = collection.name;
-            collectionJson["levels"] = collection.levels;
+            collectionJson["name"] = collection.second.name;
+            collectionJson["levels"] = collection.second.levels;
             dbJson["collections"].push_back(collectionJson);
         }
-
-        j["databases"].push_back(dbJson);
+        j["databasses"].push_back(dbJson);
     }
-
     return j;
 }
 
@@ -136,59 +132,61 @@ void createFiles(const Collection& collection, string directory_path) {
     }
 }
 
-void insertValue(int id, string pairs){
+void insertValue(int id, string pairs, AVLTree &avl){
     bool isInserted = avl.insert(id, pairs);
+    cout<<"Inside insert"<<endl;
     if(isInserted == false){
         cout<<"Such id is already present."<<endl;
     }
     else{
-    bloomFilter.insert(id);
-    cout<<"Inserted successfully."<<endl;
+        avl.bitMap.set(id%10000);
+        cout<<"Inserted successfully."<<endl;
     }
 }
 
-void deleteValue(int id){
+void deleteValue(int id, AVLTree &avl){
     string pairs = "";
     avl.insert(id, pairs, true);
-    bloomFilter.insert(id);
+    avl.bitMap.set(id%10000);
     cout<<"Deleted successfully."<<endl;
 }
 
-void updateValue(int id, string &pairs){
+void updateValue(int id, string &pairs, AVLTree &avl){
     avl.insert(id, pairs);
-    bloomFilter.insert(id);
+    avl.bitMap.set(id%10000);
     cout<<"Values updated successfully."<<endl;
 }
 
-Node* searchValue(int id){
-    if(bloomFilter.contains(id)){
-        Node* ans = avl.search(avl.root, id);
-        if(ans != nullptr){
+Node* searchValue(int id, AVLTree &avl){
+    if(avl.bitMap.test(id%10000)){
+       Node* ans = avl.search(avl.root, id);
+       if(ans != nullptr){
             if(ans->isDeleted == true){
                 return nullptr;
             }
             else{
                 return ans;
             }
-        }
+       } 
     }
-    if(bloomFilter1.contains(id)){
+    // if(sst1.bitMap.test(id%10000)){
         // Search SST_LV_1 -> will do tomorrow.
-    }
-    if(bloomFilter2.contains(id)){
+    // }
+    // if(sst2.bitMap.test(id%10000)){
         // Search SST_LV_2 -> for future work.
-    }
-    if(bloomFilter3.contains(id)){
+    // }
+    // if(sst3.bitMap.test(id%10000)){
         // Search SST_LV_3 -> for future work.
-    }
-    if(bloomFilter4.contains(id)){
+    // }
+    // if(sst4.bitMap.test(id%10000)){
         // Search SST_LV_4 -> for futur work.
-    }
+    // }
     return nullptr;
 }
 
 void insideCollection(string usermode, string collection_name){
     string query;
+    AVLTree avl = NandaDB.Databases[usermode].collections[collection_name].avl;
     while(1){
         cout << "\033[0;32m" << usermode << " : " << collection_name << " :~ \033[1;34m";
         getline(cin, query);
@@ -204,16 +202,16 @@ void insideCollection(string usermode, string collection_name){
                 auto start = chrono::high_resolution_clock::now();
                 string bson = query.substr(13, query.size() - 13);
                 json j = json::parse(bson);
-                cout<<j<<endl;
                 int id = j["id"].get<int>();
                 string pairs = j["pairs"].dump();
-                if(!bloomFilter.contains(id) && !bloomFilter1.contains(id) && !bloomFilter2.contains(id) && !bloomFilter3.contains(id) && !bloomFilter4.contains(id)){
-                    insertValue(id, pairs);
+                cout<<id<<" "<<pairs<<endl;
+                if(!avl.bitMap.test(id%10000)){//} && !sst1.bitMap.test(id%10000) && !sst2.bitMap.test(id%10000 && !sst3.bitMap.test(id%10000)) && !sst4.bitMap.test(id%10000)){
+                    insertValue(id, pairs, avl);
                 }
                 else{
-                    Node*ans = searchValue(id);
+                    Node*ans = searchValue(id, avl);
                     if(ans == nullptr){
-                        insertValue(id, pairs);
+                        insertValue(id, pairs, avl);
                     }
                     else{
                         cout<<"Such id is already present."<<endl;
@@ -236,7 +234,7 @@ void insideCollection(string usermode, string collection_name){
                 cout<<id<<endl;
                 bool isDeleted = avl.deleteNode(id);
                 if(isDeleted == false){
-                    deleteValue(id);
+                    deleteValue(id, avl);
                 }
                 else{
                     cout<<"Deleted successfully."<<endl;
@@ -249,7 +247,7 @@ void insideCollection(string usermode, string collection_name){
                 cout<<"Invalid bson format."<<endl;
             }
         }
-        else if(query.substr(0, 8) == "select *"){
+        else if(query == "select *"){
             try{
                 avl.printInOrder();
             }
@@ -263,12 +261,12 @@ void insideCollection(string usermode, string collection_name){
                 string json_string = query.substr(13, query.size() - 13);
                 json j = json::parse(json_string);
                 int id = j["id"].get<int>();
-                Node* ans = avl.search(avl.root, id);
+                Node* ans = searchValue(id, avl);
                 if(ans == nullptr){
-                    cout << "Such id is not present." << endl;
+                    cout<<"No such id present."<<endl;
                 }
                 else{
-                    cout << "Found successfully. With id " << ans->id << " and bson of " << ans->pairs << endl;
+                    cout<<"Id: "<<ans->id<<" and bson: "<<ans->pairs<<endl;
                 }
                 auto end = chrono::high_resolution_clock::now();
                 auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
@@ -287,7 +285,7 @@ void insideCollection(string usermode, string collection_name){
                 string pairs = j["pairs"].dump();
                 Node* ans = avl.update(avl.root, id, pairs);
                 if(ans == nullptr){
-                    updateValue(id, pairs);
+                    updateValue(id, pairs, avl);
                 }
                 else{
                     cout<<"Updated successfully. With id "<<ans->id<<" and bson of "<<ans->pairs<<endl;
@@ -342,23 +340,21 @@ void Console(){
         }
         else if(query.substr(0, 15) == "use collection "){
             string collection_name = query.substr(15, query.size() - 15);
-            if (usermode == NandaDB.name){
-                cout << "\033[1:31mSelect a database where you want to work. \033[0m \n" << endl;
+            if(usermode == NandaDB.name){
+                cout << "\033[1;31mSelect a database where you want to work.\033[0m \n"<< endl;
             }
             else{
-                bool isFound = false;
-                for(auto collection : NandaDB.Databases[usermode].collections){
-                    if(collection.name == collection_name){
-                        isFound = true;
-                        cout << "\033[1;31mCollection selected successfully.\033[0m \n" << endl;
-                        break;
-                    }
-                }
-                if(isFound == false){
-                    cout << "\033[1;31mNo such collection present.\033[0m" << endl;
+                if(NandaDB.Databases.find(usermode) == NandaDB.Databases.end()){
+                    cout << "\033[1;31mNo such database present.\033[0m" <<endl;
                 }
                 else{
-                    insideCollection(usermode, collection_name);
+                    if(NandaDB.Databases[usermode].collections[collection_name].name == collection_name){
+                        cout << "\033[1;31mCollection selected successfully.\033[0m \n" << endl;
+                        insideCollection(usermode, collection_name);
+                    }
+                    else{
+                        cout << "\033[1;31mNo such collection present.\033[0m" << endl;
+                    }
                 }
             }
         }
@@ -401,10 +397,8 @@ void Console(){
                 if (NandaDB.Databases.find(usermode) != NandaDB.Databases.end())
                 {
                     cout << "\033[1;31mList of collections in " << usermode << " are :\033[0m" << endl;
-                    vector<Collection> collections = NandaDB.Databases[usermode].collections;
-                    for (auto &collection : collections)
-                    {
-                        cout << " > " << collection.name << endl;
+                    for(auto collection : NandaDB.Databases[usermode].collections){
+                        cout<<" > "<<collection.first<<endl;
                     }
                     cout << endl;
                 }
@@ -451,28 +445,20 @@ void Console(){
             }
             else
             {
-                vector<Collection> &collections = NandaDB.Databases[usermode].collections;
-                bool isFound = false;
-                for (auto &collection : collections)
-                {
-                    if (collection.name == collection_name)
-                    {
-                        isFound = true;
-                        cout << "\033[1;31mCollection with same name already exists.\033[0m \n"<< endl;
-                        break;
-                    }
+                if(NandaDB.Databases[usermode].collections.find(collection_name) != NandaDB.Databases[usermode].collections.end()){
+                    cout << "\033[1;31mCollection with same name already exists.\033[0m \n"<< endl;
                 }
-                if (isFound == false)
-                {
+                else{
                     fs::path base_path = fs::current_path();
                     string directory_path = string(base_path) + "/database/" + usermode + "/" + collection_name;
                     fs::create_directory(directory_path);
-                    Collection to_ad = Collection(collection_name, {"memo", "SST_LV_1", "SST_LV_2"});
-                    NandaDB.Databases[usermode].collections.push_back(to_ad);
+                    Collection to_ad = Collection(collection_name, {"memo", "SST_LV_1", "SST_LV_2", "SST_LV_3", "SST_LV_4"});
+                    NandaDB.Databases[usermode].collections[collection_name] = to_ad;
                     createFiles(to_ad, directory_path);
                     saveMetadata();
                     cout << "\033[1;31mCollection created successfully.\033[0m \n"<< endl;
                 }
+
             }
         }
         else if (query.substr(0, 16) == "delete database ")
@@ -516,25 +502,16 @@ void Console(){
             }
             else
             {
-                vector<Collection> &collections = NandaDB.Databases[usermode].collections;
-                bool isFound = false;
-                for (auto it = collections.begin(); it != collections.end(); ++it)
-                {
-                    if (it->name == collection_name)
-                    {
-                        isFound = true;
-                        fs::path base_path = fs::current_path();
-                        string directory_path = string(base_path) + "/database/" + usermode + "/" + collection_name;
-                        fs::remove_all(directory_path);
-                        collections.erase(it);
-                        saveMetadata();
-                        cout << "\033[1;31mCollection deleted successfully.\033[0m \n" << endl;
-                        break;
-                    }
-                }
-                if (isFound == false)
-                {
+                if(NandaDB.Databases[usermode].collections.find(collection_name) == NandaDB.Databases[usermode].collections.end()){
                     cout << "\033[1;31mNo such collection present.\033[0m" << endl;
+                }
+                else{
+                    fs::path base_path = fs::current_path();
+                    string directory_path = string(base_path) + "/database/" + usermode + "/" + collection_name;
+                    fs::remove_all(directory_path);
+                    NandaDB.Databases[usermode].collections.erase(collection_name);
+                    saveMetadata();
+                    cout << "\033[1;31mCollection deleted successfully.\033[0m \n"<< endl;
                 }
             }
         }

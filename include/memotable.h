@@ -31,7 +31,8 @@ struct Node {
 class AVLTree {
 public:
     Node* root;
-
+    bitset<10000> bitMap{0};
+    size_t number_of_nodes=0;
     int getHeight(Node* node);
     int getBalanceFactor(Node* node);
     Node* search(Node* node, int key);
@@ -44,6 +45,10 @@ public:
     bool deleteNode(int id);
     void printInOrder();
     void printInOrder(Node* node);
+    void write_to_sst(vector<pair<int,string>>&result, string file_name, string index_file_name);
+    void create_index_tree(vector<pair<int,string>>&result);
+    void write_index_tree(vector<pair<int,string>>&result);
+    void flush_to_sst();
 };
 
 
