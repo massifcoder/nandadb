@@ -9,6 +9,13 @@
         "tuple": "cpp",
         "bitset": "cpp",
         "string_view": "cpp",
-        "source_location": "cpp"
+        "source_location": "cpp",
+        "iosfwd": "cpp",
+        "*.tcc": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "string": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp"
     }
 }

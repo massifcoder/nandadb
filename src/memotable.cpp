@@ -242,11 +242,11 @@ void AVLTree::write_to_sst(vector<pair<int, string>>&result, string file_name, s
         int size = node.second.size() + 1;
         char data[size];
         strcpy(data, node.second.c_str());
-        data[size] = '\0';
+        data[size-1] = '\0';
         long long location = data_out.tellp();
         data_out.write((char*)(&data), size);
         long long endLocation = data_out.tellp();
-        IndexNode indexNode(node.first, location, size_t(endLocation = location));
+        IndexNode indexNode(node.first, location, size_t(endLocation - location));
         index_out.write((char*)&indexNode, sizeof(indexNode));
     }
     data_out.close();

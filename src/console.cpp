@@ -67,6 +67,33 @@ bool performPOST(){
     }
     bool passed_post = verify_database_file();
 
+    try{
+        ifstream file("memo");
+        if (!file.is_open()) {
+            std::cerr << "Error opening file." << std::endl;
+            return 1;
+        }
+        string line;
+        while(std::getline(file, line)){
+            if(line == ""){
+                break;
+            }
+            json jsonData = json::parse(line);
+            cout<<jsonData<<endl;
+            int id = jsonData["id"];
+            json pairs = jsonData["pairs"];
+            string usermode = jsonData["usermode"];
+            string collection_name = jsonData["collection_name"];
+            string a = "";
+            string pair = pairs.dump();
+            NandaDB.Databases[usermode].collections[collection_name].avl.insert(a,a,id, pair);
+            NandaDB.Databases[usermode].collections[collection_name].avl.printInOrder();
+        }
+    }
+    catch(exception& e){
+        cout<<"Loaded nothing"<<endl;
+    }
+
     if(passed_post){
         cout<<"System is ready to use."<<endl;
         cout<<endl;
@@ -172,14 +199,23 @@ void insertValue(int id, string pairs, AVLTree &avl, string usermode, string col
         pair<string, string> file_name_pair = getFileName(usermode, collection_name, id);
         file_name = file_name_pair.first;
         index_file_name = file_name_pair.second;
+        // ofstream data_out("memo");
+        // data_out << "asd";
+        // data_out.close();
+        ofstream data_memo("memo");
+        data_memo << "";
+        data_memo.close();
     }
     string base_path = string(fs::current_path()) + "/database/" + usermode + "/" + collection_name + "/";
     bool isInserted = avl.insert(base_path + file_name, base_path + index_file_name, id, pairs);
-    cout<<"Inside insert"<<endl;
     if(isInserted == false){
         cout<<"Such id is already present."<<endl;
     }
     else{
+        ofstream data_out("memo", ios::app);
+        string tem = "{ \"usermode\" :  \"" + usermode + "\", \"collection_name\" : \"" + collection_name + "\" , \"id\" : " +to_string(id) + ", \"pairs\" : " + pairs + " }";
+        data_out<< tem <<std::endl;
+        data_out.close();
         avl.bitMap.set(id%10000);
         cout<<"Inserted successfully."<<endl;
     }
@@ -215,36 +251,43 @@ void updateValue(int id, string &pairs, AVLTree &avl, string usermode, string co
     cout<<"Values updated successfully."<<endl;
 }
 
-bool read_data_from_location(long long location, size_t structSize, string file_name, bool isPrint){
+bool read_data_from_location(long long location, size_t structSize, string file_name, bool isPrint) {
+    if(structSize == 0){
+        if(isPrint){
+            cout<<"For this id data is deleted."<<endl;
+        }
+        return false;
+    }
     ifstream data_in(file_name, ios::binary);
 
-    if(!data_in.is_open()){
-        cout<<"Error in opening SST file. Check file location and error log file."<<endl;
+    if (!data_in.is_open()) {
+        cout << "Error in opening SST file. Check file location and error log file." << endl;
         return false;
     }
 
     data_in.seekg(location);
-    if (!data_in.is_open()) {
-        cout<<"Error"<<endl;
-    }
-    vector<char> serialised(structSize);
-    data_in.read(serialised.data(), structSize);
-    if(serialised.size()==0){
-        if(isPrint){
-            cout<<"Id is not present."<<endl;
-        }
+    
+    char serialised[structSize];
+
+    if (!data_in.read((char*)&serialised, structSize)) {
+        cout << "Error in reading data from file." << endl;
+        data_in.close();
         return false;
     }
-    if(isPrint){
-        cout<<"For this id data is: ";
-        cout<<serialised.data()<<endl;
+
+    data_in.close();
+
+    if (isPrint) {
+        cout << "For this id data is: ";
+        cout<<string(serialised)<<endl;
     }
+
     return true;
 }
 
+
 pair<long long, size_t> find_location_by_key(int id, string index_file_name){
     ifstream index_in(index_file_name , ios::binary);
-
     if(!index_in.is_open()){
         cout<<"Error in opening index file."<<endl;
         return {-1,-1};
@@ -267,7 +310,6 @@ pair<long long, size_t> find_location_by_key(int id, string index_file_name){
         }
 
         index_in.seekg(current_position * sizeof(indexNode), ios::beg);
-    
     }
 
     index_in.close();
@@ -278,6 +320,7 @@ pair<long long, size_t> find_location_by_key(int id, string index_file_name){
 bool load_from_sst(int id, string file_name, string index_file_name, bool isPrint){
     pair<long long, size_t> info = find_location_by_key(id, index_file_name);
     if(info.first != -1){
+        cout<<"Size of struct: "<<info.second<<endl;
         return read_data_from_location(info.first, info.second, file_name, isPrint); 
     }
     else{
@@ -305,16 +348,16 @@ bool searchValue(int id, AVLTree &avl, string usermode, string collection_name, 
             }
        } 
     }
-    else{
-        string base_path = string(fs::current_path()) + "/database/" + usermode + "/" + collection_name + "/";
-        for(int i = 0; i < number_of_levels; i++){
-            string file_name = NandaDB.Databases[usermode].collections[collection_name].levels[i].name + ".sst";
-            string index_file_name = NandaDB.Databases[usermode].collections[collection_name].levels[i].name + ".idx";
-            if(load_from_sst(id, base_path + file_name, base_path + index_file_name, isPrint)){
-                return true;
-            }
+    
+    string base_path = string(fs::current_path()) + "/database/" + usermode + "/" + collection_name + "/";
+    for(int i = 0; i < number_of_levels; i++){
+        string file_name = NandaDB.Databases[usermode].collections[collection_name].levels[i].name + ".sst";
+        string index_file_name = NandaDB.Databases[usermode].collections[collection_name].levels[i].name + ".idx";
+        if(load_from_sst(id, base_path + file_name, base_path + index_file_name, isPrint)){
+            return true;
         }
     }
+    
     if(isPrint){
         cout<<"Id is not present."<<endl;
     }
@@ -342,18 +385,12 @@ void insideCollection(string usermode, string collection_name){
                 int id = j["id"].get<int>();
                 string pairs = j["pairs"].dump();
                 cout<<id<<" "<<pairs<<endl;
-                
-                if(!avl.bitMap.test(id%10000)){
+                bool ans = searchValue(id, avl, usermode, collection_name, false);
+                if(ans == false){
                     insertValue(id, pairs, avl, usermode, collection_name);
                 }
                 else{
-                    bool ans = searchValue(id, avl, usermode, collection_name, false);
-                    if(ans == false){
-                        insertValue(id, pairs, avl, usermode, collection_name);
-                    }
-                    else{
-                        cout<<"Such id is already present."<<endl;
-                    }
+                    cout<<"Such id is already present."<<endl;
                 }
                 auto end = chrono::high_resolution_clock::now();
                 auto duration = chrono::duration_cast<chrono::microseconds>(end - start);

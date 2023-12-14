@@ -1,12 +1,15 @@
 {
     "databasses": [
         {
+            "name": "system"
+        },
+        {
             "collections": [
                 {
                     "levels": [
                         {
                             "name": "SST_LV_1",
-                            "number": 0
+                            "number": 2
                         },
                         {
                             "name": "SST_LV_2",
@@ -25,9 +28,6 @@
                 }
             ],
             "name": "massifcoder"
-        },
-        {
-            "name": "system"
         }
     ],
     "name": "NandaDB"
