@@ -1,5 +1,5 @@
-// To run file, run : g++ main.cpp src/memotable.cpp src/field.cpp src/utility.cpp -I
-// include -lncurses
+// To run file, run : g++ main.cpp src/memotable.cpp src/utility.cpp src/console.cpp
+// src/loading.cpp -I include -lncurses
 #include <bits/stdc++.h>
 #include "console.h"
 using namespace std;
