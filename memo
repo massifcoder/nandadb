@@ -1,0 +1,3 @@
+{ "usermode" :  "massifcoder", "collection_name" : "massif" , "id" : 106, "isDeleted":true, "pairs" : {"age":20,"name":"Jay Chauhan","roll_no":"20bcs098","state":"Uttra Pradesh"} }
+{ "usermode" :  "massifcoder", "collection_name" : "massif" , "id" : 105,"isDeleted":false, "pairs" : {"age":22,"name":"Somesh Kumar","roll_no":"20bme104","state":"Uttra Pradesh"} }
+{ "usermode" :  "massifcoder", "collection_name" : "massif" , "id" : 106,"isDeleted":false, "pairs" : {"name":"Jay"} }
